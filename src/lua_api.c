@@ -797,7 +797,7 @@ void lua_api_init(void) {
     lua_setglobal(globalLuaState, "DOWN");
 
     lua_pushinteger(globalLuaState, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT);
-    lua_setglobal(globalLuaState, "BTN_Z");
+    lua_setglobal(globalLuaState, "BTN_X");
 
     lua_pushinteger(globalLuaState, GAMEPAD_BUTTON_RIGHT_FACE_LEFT);
     lua_setglobal(globalLuaState, "BTN_E");
