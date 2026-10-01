@@ -51,8 +51,8 @@ lupinho/
 │   └── game.data
 ├── site/
 |   ├── index.html
-│   └── site
-│       └── dist/            # Cole a Saída do WebAssembly Compilado aqui
+│   └── dist/
+│       └── .keep            # Cole a Saída do WebAssembly Compilado aqui
 ├── src/
 │   ├── main.c               # Ponto de entrada principal
 │   ├── lua_api.c            # Associações (bindings) de Lua para a API ui.*
@@ -69,8 +69,8 @@ lupinho/
 │   ├── lupi_manifest.txt    # Arquivo de metadados para o Lupi - Gerado pelo lupi-codec
 │   ├── img/                 # Sprites bitmap
 │   └── map/                 # Dados do mapa de tiles
-└── LEIAME.md - Este Leia-me
-└── README_en.md - Leia-me em inglês
+└── LEIAME.md                # Este Leia-me
+└── README_en.md             # Leia-me em inglês
 ```
 
 ## 🚀 Primeiros Passos
