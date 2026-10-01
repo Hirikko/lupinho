@@ -1,7 +1,7 @@
 # 🎮 Lupinho
 
 **Lupinho** is a web-based simulator for **Lupi**, a Brazilian game console. It runs directly in your browser using WebAssembly, allowing you to write and play games using a simple Lua scripting API.
-
+### Created by: Juneira
 ### 🕹️ [Try the Demo](https://lupinho.juneira.com/)
 
 > The demo game is **"caio-pernocas"**. Use the **A,W,S,D** to move and **K** as the action button. You can use a joystick too.
