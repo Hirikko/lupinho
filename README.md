@@ -184,7 +184,7 @@ Constantes de botões: `UP`, `DOWN`, `LEFT`, `RIGHT`, `BTN_Z`, `BTN_Q`, `BTN_E`,
 
 ```lua
 -- Defina sua paleta
--- O primeiro índice (cor), sempre será transparente (0x0000).
+-- O primeiro índice (cor) sempre será transparente (0x0000).
 Palette = {
     [1] = 0x0000,
     [2] = 0x1516,
