@@ -5,7 +5,7 @@ Funciona diretamente no seu navegador usando WebAssembly, permitindo que crie e 
 
 ### 🕹️ [Teste a Demo](https://lupinho.juneira.com/)
 
-> O jogo de demonstração é "caio-pernocas".  
+> O jogo de demonstração é ["caio-pernocas"](https://github.com/lupi-org-br/caio-pernocas).  
 > Use as teclas W, A, S, D para mover e K como botão de ação. Você também pode usar um Controle.
 ### Simulador Vs Emulador 
 É importante entender a diferença entre estes dois termos para saber exatamente como o Lupinho funciona:
@@ -23,7 +23,7 @@ Você pode ter mais informações sobre os **Limites** nesta Issue: [**LIMITAÇ�
 - 🌐 **Funciona no navegador** — Roda em WebAssembly, necessário poucas instalações e configurações
 - 📜 **Scripts em Lua** — Escreva seus jogos em Lua de forma simples e fácil de aprender
 - 🎨 **Gráficos 2D** — Desenhe texto, linhas, retângulos, círculos e triângulos
-- 🖼️ **Sprites e Tiles** — Carregue e desenhe folhas de sprites com suporte a inversão (flip)
+- 🖼️ **Sprites e Tiles** — Carregue e desenhe spritesheets com suporte a inversão (flip)
 - 🗺️ **Sistema de Mapas (Tilemap)** — Desenhe grandes mapas com rolagem de câmera (scrolling)
 - 🎮 **Controle e Teclado** — Suporte de entrada tanto para controles quanto para teclado
 - ⚡ **60 FPS** — Jogabilidade fluida a 60 quadros por segundo
@@ -69,7 +69,7 @@ lupinho/
 │   ├── lupi_manifest.txt    # Arquivo de metadados para o Lupi - Gerado pelo lupi-codec
 │   ├── img/                 # Sprites bitmap
 │   └── map/                 # Dados do mapa de tiles
-└── LEIAME.md                # Este Leia-me
+└── README.md                # Este Leia-me
 └── README_en.md             # Leia-me em inglês
 ```
 
@@ -184,12 +184,21 @@ Constantes de botões: `UP`, `DOWN`, `LEFT`, `RIGHT`, `BTN_Z`, `BTN_Q`, `BTN_E`,
 
 ```lua
 -- Defina sua paleta
+-- O primeiro índice (cor), sempre será transparente (0x0000).
 Palette = {
-    0x0000, 0x1516, 0x25B4, 0x20A6, 0x1DFD, 0x46FE, 0x7FFF, 0x2532
+    [1] = 0x0000,
+    [2] = 0x1516,
+    [3] = 0x25B4,
+    [4] = 0x20A6,
+    [5] = 0x1DFD,
+    [6] = 0x46FE,
+    [7] = 0x7FFF,
+    [8] = 0x2532
 }
 
--- Define as cores da paleta
+-- Faz a Contagem e define as cores da paleta
 for i = 1, #Palette do
+-- Ajusta o índice do Lua (começa em 1) para O índice da API Raylib (começa em 0)
     ui.palset(i - 1, Palette[i])
 end
 
@@ -236,6 +245,6 @@ Este projeto é de código aberto.
 <div align="center">
   
 **Feito com ❤️ no Brasil 🇧🇷**  
-**Revisado e Atualizado por : [Hiriko](https://github.com/Hirikko) 🩷**
+**Revisado e Atualizado por : [Hiriko](https://github.com/Hirikko) 🩷 e [Felipowsky](https://github.com/felipowsky)**
 
 </div>
