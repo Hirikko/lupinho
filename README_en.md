@@ -4,7 +4,7 @@
 
 ### 🕹️ [Try the Demo](https://lupinho.juneira.com/)
 
-> The demo game is **"caio-pernocas"**.  
+> The demo game is **["caio-pernocas"](https://github.com/lupi-org-br/caio-pernocas)**.  
 > Use the **W,A,S,D** to move and **K** as the action button. You can use a joystick too.
 
 ### Simulator Vs Emulator
@@ -184,13 +184,22 @@ Button constants: `UP`, `DOWN`, `LEFT`, `RIGHT`, `BTN_Z`, `BTN_Q`, `BTN_E`, `BTN
 
 ```lua
 -- Define your palette
+-- The first index (color) will always be transparent(0x0000).
 Palette = {
-    0x0000, 0x1516, 0x25B4, 0x20A6, 0x1DFD, 0x46FE, 0x7FFF, 0x2532
+    [1] = 0x0000,
+    [2] = 0x1516,
+    [3] = 0x25B4,
+    [4] = 0x20A6,
+    [5] = 0x1DFD,
+    [6] = 0x46FE,
+    [7] = 0x7FFF,
+    [8] = 0x2532
 }
 
--- Set palette colors
+-- Performs the count and defines the palette colors.
 for i = 1, #Palette do
-    ui.palset(i - 1, Palette[i])
+-- Adjusts the Lua index (starting at 1) to the Raylib API index (starting at 0).
+    ui.palset(i - 1, Palette[i])
 end
 
 -- Game variables
@@ -236,6 +245,6 @@ This project is open source.
 <div align="center">
     
    **Made with ❤️ in Brazil 🇧🇷**  
-   **Maintained & Translated by by: [Hiriko](https://github.com/Hirikko) 🩷**
+   **Maintained & Translated by: [Hiriko](https://github.com/Hirikko) and [Felipowsky](https://github.com/felipowsky) 🩷**
    
 </div>
