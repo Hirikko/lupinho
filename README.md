@@ -245,6 +245,6 @@ Este projeto é de código aberto.
 <div align="center">
   
 **Feito com ❤️ no Brasil 🇧🇷**  
-**Revisado e Atualizado por : [Hiriko](https://github.com/Hirikko) 🩷 e [Felipowsky](https://github.com/felipowsky)**
+**Revisado e Atualizado por : [Hiriko](https://github.com/Hirikko) 🩷 e [Felipowsky](https://github.com/felipowsky) 🧡**
 
 </div>
