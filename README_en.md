@@ -245,6 +245,6 @@ This project is open source.
 <div align="center">
     
    **Made with ❤️ in Brazil 🇧🇷**  
-   **Maintained & Translated by: [Hiriko](https://github.com/Hirikko) and [Felipowsky](https://github.com/felipowsky) 🩷**
+   **Maintained & Translated by: [Hiriko](https://github.com/Hirikko) 🩷 and [Felipowsky](https://github.com/felipowsky) 🧡**
    
 </div>
