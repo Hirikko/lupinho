@@ -5,7 +5,7 @@ CC = emcc
 CC_NATIVE = gcc
 
 # Source Files
-SRC = main.c ui.c lua_api.c
+SRC = main.c ui.c lua_api.c hardware_constraints.c
 
 # Output File
 OUTPUT = ../dist/game.html
@@ -33,7 +33,7 @@ STATIC_LIBS = $(RAYLIB_LINUX_STATIC) $(LUA_55_LIB)
 STATIC_LIBS_FLAGS = -Wl,-Bstatic $(RAYLIB_LINUX_STATIC) $(LUA_55_LIB) -Wl,-Bdynamic -lm -ldl -lpthread -lX11 -larchive
 
 # Native (Linux) Source Files
-SRC_NATIVE = main.c ui.c lua_api.c zip.c
+SRC_NATIVE = main.c ui.c lua_api.c hardware_constraints.c zip.c
 
 # Compilation Flags
 CFLAGS = -Wall -std=c99 -D_DEFAULT_SOURCE -Wno-missing-braces
@@ -55,8 +55,12 @@ OPTIMIZATION = -O2
 
 # Debug/Production Flags
 # Production flags without closure compiler (causes issues with Raylib)
-DEBUG_FLAGS = -DDEBUG_MODE
+DEBUG_FLAGS = -DDEBUG_MODE -DLUPI_HARDWARE_DEBUG
 PROD_FLAGS = -O3 -s ASSERTIONS=0 -s DISABLE_EXCEPTION_CATCHING=1 -s ELIMINATE_DUPLICATE_FUNCTIONS=1 -DPRODUCTION
+
+# Debug Target (web with hardware debug overlay)
+debug: $(SRC)
+	$(CC) $(SRC) -o $(OUTPUT) $(RAYLIB_INCLUDE) $(LUA_WEB_INCLUDE) $(CFLAGS) $(EMFLAGS) $(DEBUG_FLAGS) $(OPTIMIZATION) $(LUA_WEB_LIB) $(RAYLIB_LIB)
 
 # Web Target (development with debug)
 web: $(SRC)
@@ -98,7 +102,8 @@ help:
 	@echo "======================"
 	@echo ""
 	@echo "Targets:"
-	@echo "  make web         - Build for WebAssembly (development mode with debug)"
+	@echo "  make debug       - Build for WebAssembly with hardware debug overlay
+	@echo "  make web         - Build for WebAssembly (development mode)"
 	@echo "  make production  - Build for WebAssembly (optimized, no debug)"
 	@echo "  make web-game GAME_PATH=game.lupi - Build for Web with embedded .lupi game (output: dist/webgame/)"
 	@echo "  make linux       - Build for Linux desktop (requires raylib, libarchive)"
