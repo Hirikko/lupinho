@@ -91,8 +91,22 @@ make web
 
 # Versão de produção (otimizada, sem depuração)
 make production
-```
 
+# Versão De Desenvolvimento dos Limites e novas Funções
+make debug
+```
+## Ainda em Desenvolvimento
+`make debug` - Esta versão tem o objetivo de adicionar os [Limites](https://github.com/lupi-org-br/lupinho/issues/12) e comandos do Lupi no Lupinho.
+
+Atualmente `Palette.hex` e `Sprites.find` foram adicionados.  
+Para ativar os controles do overlay e limitação, adicione isto no seu game.lua ou main.lua:
+```
+LUPI_HARDWARE_CONSTRAINTS = true           -- true Ativa / false Desativa limitações
+LUPI_HARDWARE_DEBUG_OVERLAY = true         -- Controle do overlay
+LUPI_HARDWARE_DEBUG_OVERLAY_X = 13         -- Posição Horizontal na tela
+LUPI_HARDWARE_DEBUG_OVERLAY_Y = 13         -- Posição Vertical na tela
+LUPI_HARDWARE_DEBUG_OVERLAY_ALPHA = 0.45   -- Controle de Transparência
+```
 ### Executando
 
 Após compilar, copie o conteúdo de **`lupinho/dist/`** e cole em **`lupinho/site/dist/`**.  
@@ -126,6 +140,7 @@ O Lupinho usa um sistema de cores baseado em paleta com 256 cores no formato BGR
 | Função | Descrição |
 |--------|-----------|
 | `ui.palset(index, bgr555)` | Define uma cor da paleta no índice especificado (0-255) |
+| `Palette.hex(0x000000)` | Você passa um RGB igual do computador (888) e ela procura a cor mais próxima dentro da tabela do jogo  (555 indexado). |
 
 ### Funções de Desenho
 
@@ -155,6 +170,7 @@ Todas as funções de desenho usam índices da paleta (0-255) para as cores:
 
 | Função | Descrição |
 |--------|-----------|
+| `Sprites.find(_hero1)` | Esse find procura o primeiro sprite com aquele nome, em qualquer pasta que ele estiver |
 | `ui.spr(sprite_table, x, y, flipped)` | Desenha um sprite |
 | `ui.tile(tileset_table, tile_index, x, y)` | Desenha um tile (o bit 10 do índice inverte horizontalmente) |
 
@@ -194,6 +210,22 @@ Palette = {
     [6] = 0x46FE,
     [7] = 0x7FFF,
     [8] = 0x2532
+}
+
+-- Usando Palette.hex:
+
+kCores = {
+    preto = Palette.hex(0x000000),
+    roxo_claro      = Palette.hex(0x9C63A5),
+    roxo_escuro     = Palette.hex(0x392142),
+    verde_escuro    = Palette.hex(0x083918),
+    verde_claro     = Palette.hex(0x528410),
+    fundo_verde     = Palette.hex(0x185A21),
+    cinza_claro     = Palette.hex(0xCED6DE),
+    vermelho_claro  = Palette.hex(0xAD2121),
+    azul_claro      = Palette.hex(0x47f3ff),
+    amarelo         = Palette.hex(0xE7CE9C),
+    sol             = Palette.hex(0xFF7B73),
 }
 
 -- Faz a Contagem e define as cores da paleta
