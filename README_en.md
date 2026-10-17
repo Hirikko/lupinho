@@ -91,8 +91,22 @@ make web
 
 # Production build (optimized, no debug)
 make production
-```
 
+# Development Version: Hardware Constraints and New Functions
+make debug
+```
+## Still under development
+`make debug` – This version aims to incorporate Lupi’s hardware constraints and commands into "lupinho."
+
+Currently, `Palette.hex` and `Sprites.find` have been expanded.
+To enable the overlay and hardware constraint controls, add the following to your `game.lua` or `main.lua` file:
+```
+LUPI_HARDWARE_CONSTRAINTS = true -- true: enables / false: disables constraints
+LUPI_HARDWARE_DEBUG_OVERLAY = true -- Overlay control
+LUPI_HARDWARE_DEBUG_OVERLAY_X = 13 -- Horizontal position on the screen
+LUPI_HARDWARE_DEBUG_OVERLAY_Y = 13 -- Vertical position on the screen
+LUPI_HARDWARE_DEBUG_OVERLAY_ALPHA = 0.45 -- Transparency control
+```
 ### Running
 
 After building, copy the contents of **`lupinho/dist`** and paste them into **`lupinho/site/dist`**.  
@@ -126,7 +140,7 @@ Lupinho uses a palette-based color system with 256 colors in BGR555 format (5 bi
 | Function | Description |
 |----------|-------------|
 | `ui.palset(index, bgr555)` | Set a palette color at the specified index (0-255) |
-
+| `Palette.hex(0x000000)` | You provide an RGB value (like those used on computers—888 format), and it finds the closest color within the game's palette (555 indexed). |
 ### Drawing Functions
 
 All drawing functions use palette indices (0-255) for colors:
@@ -155,6 +169,7 @@ All drawing functions use palette indices (0-255) for colors:
 
 | Function | Description |
 |----------|-------------|
+| `Sprites.find(_hero1)` | This `find` searches for the first sprite with that name, regardless of which folder it is in |
 | `ui.spr(sprite_table, x, y, flipped)` | Draw a sprite |
 | `ui.tile(tileset_table, tile_index, x, y)` | Draw a tile (index bit 10 flips horizontally) |
 
@@ -194,6 +209,22 @@ Palette = {
     [6] = 0x46FE,
     [7] = 0x7FFF,
     [8] = 0x2532
+}
+
+-- Using Palette.hex:
+
+kColors = {
+    black = Palette.hex(0x000000),
+    purple_light = Palette.hex(0x9C63A5),
+    purple_dark = Palette.hex(0x392142),
+    green_dark = Palette.hex(0x083918),
+    green_light = Palette.hex(0x528410),
+    green_bg = Palette.hex(0x185A21),
+    gray_light = Palette.hex(0xCED6DE),
+    red_light = Palette.hex(0xAD2121),
+    blue_light = Palette.hex(0x47f3ff),
+    yellow = Palette.hex(0xE7CE9C),
+    sunrise = Palette.hex(0xFF7B73),
 }
 
 -- Performs the count and defines the palette colors.
