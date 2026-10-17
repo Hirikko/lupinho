@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "ui.h"
 #include "font.h"
@@ -11,6 +12,114 @@
 //----------------------------------------------------------------------------------
 uint8_t frame_buffer[SCREEN_HEIGHT][SCREEN_WIDTH];
 Color palette[PALETTE_SIZE];
+
+//----------------------------------------------------------------------------------
+// Persistent file cache
+//----------------------------------------------------------------------------------
+// The real hardware should not reopen and reread the same asset from the SD card
+// every time spr()/tile()/map() is called. Keep loaded files in RAM and account for
+// SD traffic only when an asset is actually brought into the cache.
+#define LUPI_FILE_CACHE_MAX 256
+
+typedef struct {
+    char *path;
+    uint8_t *data;
+    size_t size;
+} LupiFileCacheEntry;
+
+static LupiFileCacheEntry file_cache[LUPI_FILE_CACHE_MAX];
+static int file_cache_count = 0;
+
+static void clear_file_cache(void) {
+    for (int i = 0; i < file_cache_count; i++) {
+        free(file_cache[i].path);
+        free(file_cache[i].data);
+        file_cache[i].path = NULL;
+        file_cache[i].data = NULL;
+        file_cache[i].size = 0;
+    }
+    file_cache_count = 0;
+}
+
+static const uint8_t *load_file_cached(const char *path, size_t *out_size, bool *out_cache_hit) {
+    if (out_cache_hit) *out_cache_hit = false;
+
+    for (int i = 0; i < file_cache_count; i++) {
+        if (strcmp(file_cache[i].path, path) == 0) {
+            if (out_size) *out_size = file_cache[i].size;
+            if (out_cache_hit) *out_cache_hit = true;
+            return file_cache[i].data;
+        }
+    }
+
+    FILE *f = fopen(path, "rb");
+    if (!f) return NULL;
+
+    if (fseek(f, 0, SEEK_END) != 0) {
+        fclose(f);
+        return NULL;
+    }
+
+    long file_size = ftell(f);
+    if (file_size < 0) {
+        fclose(f);
+        return NULL;
+    }
+
+    if (fseek(f, 0, SEEK_SET) != 0) {
+        fclose(f);
+        return NULL;
+    }
+
+    size_t size = (size_t)file_size;
+    uint8_t *data = NULL;
+    if (size > 0) {
+        data = (uint8_t *)malloc(size);
+        if (!data) {
+            fclose(f);
+            return NULL;
+        }
+
+        size_t bytes_read = fread(data, 1, size, f);
+        fclose(f);
+
+        if (bytes_read != size) {
+            free(data);
+            return NULL;
+        }
+    } else {
+        fclose(f);
+    }
+
+    // The cache is deliberately bounded for this diagnostic implementation.
+    // If full, evict the oldest entry so newly loaded assets can remain resident.
+    if (file_cache_count >= LUPI_FILE_CACHE_MAX) {
+        free(file_cache[0].path);
+        free(file_cache[0].data);
+        memmove(&file_cache[0], &file_cache[1],
+                sizeof(file_cache[0]) * (LUPI_FILE_CACHE_MAX - 1));
+        file_cache_count--;
+    }
+
+    char *path_copy = (char *)malloc(strlen(path) + 1);
+    if (!path_copy) {
+        free(data);
+        return NULL;
+    }
+
+    strcpy(path_copy, path);
+
+    file_cache[file_cache_count].path = path_copy;
+    file_cache[file_cache_count].data = data;
+    file_cache[file_cache_count].size = size;
+    file_cache_count++;
+
+    hardware_constraints_add_sd_transaction();
+    hardware_constraints_add_sd_bytes((uint32_t)size);
+
+    if (out_size) *out_size = size;
+    return data;
+}
 
 //----------------------------------------------------------------------------------
 // Fill pattern
@@ -343,21 +452,21 @@ void draw_tile(const char *path, int width, int height, int tile_index, int x, i
     int tile_size = width * height;
     long data_offset = (long)tile_index * tile_size;
 
-    FILE *f = fopen(path, "rb");
-    if (!f) {
-        printf("Warning: Could not open tile file %s\n", path);
+    size_t file_size = 0;
+    bool cache_hit = false;
+    const uint8_t *file_data = load_file_cached(path, &file_size, &cache_hit);
+    (void)cache_hit;
+    if (!file_data) {
+        printf("Warning: Could not load tile file %s\n", path);
         return;
     }
 
-    hardware_constraints_add_sd_transaction();
-    fseek(f, data_offset, SEEK_SET);
+    if (data_offset < 0 || (size_t)data_offset + (size_t)tile_size > file_size) {
+        printf("Warning: Tile %d is outside file %s\n", tile_index, path);
+        return;
+    }
 
-    uint8_t *data = (uint8_t *) malloc(tile_size);
-    if (!data) { fclose(f); return; }
-
-    size_t bytes_read = fread(data, 1, tile_size, f);
-    hardware_constraints_add_sd_bytes((uint32_t)bytes_read);
-    fclose(f);
+    const uint8_t *data = file_data + data_offset;
 
     for (int row = 0; row < height; row++) {
         for (int col = 0; col < width; col++) {
@@ -368,8 +477,6 @@ void draw_tile(const char *path, int width, int height, int tile_index, int x, i
             fb_set(px, py, idx, false);
         }
     }
-
-    free(data);
 }
 
 //----------------------------------------------------------------------------------
@@ -381,21 +488,24 @@ void draw_spr(const char *path, int width, int height, int x, int y, bool flippe
     x -= camera_x;
     y -= camera_y;
 
-    FILE *f = fopen(path, "rb");
-    if (!f) {
-        printf("Warning: Could not open sprite file %s\n", path);
+    size_t file_size = 0;
+    bool cache_hit = false;
+    const uint8_t *data = load_file_cached(path, &file_size, &cache_hit);
+    if (!data) {
+        printf("Warning: Could not load sprite file %s\n", path);
         return;
     }
 
-    hardware_constraints_add_sd_transaction();
     int data_size = width * height;
-    uint8_t *data = (uint8_t *) malloc(data_size);
-    if (!data) { fclose(f); return; }
+    if (data_size < 0 || (size_t)data_size > file_size) {
+        printf("Warning: Sprite %s is smaller than %dx%d\n", path, width, height);
+        return;
+    }
 
-    size_t bytes_read = fread(data, 1, data_size, f);
-    hardware_constraints_add_sd_bytes((uint32_t)bytes_read);
-    hardware_constraints_add_sprite_load();
-    fclose(f);
+    // A sprite load now means an asset entering RAM, not every spr() call.
+    if (!cache_hit) {
+        hardware_constraints_add_sprite_load();
+    }
 
     for (int row = 0; row < height; row++) {
         for (int col = 0; col < width; col++) {
@@ -406,8 +516,6 @@ void draw_spr(const char *path, int width, int height, int x, int y, bool flippe
             fb_set(px, py, idx, false);
         }
     }
-
-    free(data);
 }
 
 //----------------------------------------------------------------------------------
@@ -422,6 +530,7 @@ void set_fillp(uint8_t *bytes, int n) {
 // UI Reset
 //----------------------------------------------------------------------------------
 void reset_ui_state(void) {
+    clear_file_cache();
     reset_camera();
     reset_clip();
     clear_frame_buffer();
@@ -433,23 +542,14 @@ void reset_ui_state(void) {
 // Map Functions
 //----------------------------------------------------------------------------------
 void draw_map_layer(MapLayerData *data, int map_width, int tile_size, int cam_x, int cam_y) {
-    FILE *f = fopen(data->path, "rb");
-    if (!f) {
-        printf("Warning: Could not open tileset file %s\n", data->path);
+    size_t file_size = 0;
+    bool cache_hit = false;
+    const uint8_t *file_buf = load_file_cached(data->path, &file_size, &cache_hit);
+    (void)cache_hit;
+    if (!file_buf) {
+        printf("Warning: Could not load tileset file %s\n", data->path);
         return;
     }
-
-    hardware_constraints_add_sd_transaction();
-    fseek(f, 0, SEEK_END);
-    long file_size = ftell(f);
-    fseek(f, 0, SEEK_SET);
-
-    uint8_t *file_buf = (uint8_t *)malloc(file_size);
-    if (!file_buf) { fclose(f); return; }
-
-    size_t bytes_read = fread(file_buf, 1, (size_t)file_size, f);
-    hardware_constraints_add_sd_bytes((uint32_t)bytes_read);
-    fclose(f);
 
     int tile_pixels = data->tile_w * data->tile_h;
 
@@ -471,7 +571,7 @@ void draw_map_layer(MapLayerData *data, int map_width, int tile_size, int cam_x,
 
         if (!hardware_constraints_try_drawlist(0, HARDWARE_DRAWLIST_COMMAND_TILE)) continue;
 
-        uint8_t *tile_data = file_buf + offset;
+        const uint8_t *tile_data = file_buf + offset;
         for (int ty = 0; ty < data->tile_h; ty++) {
             for (int tx = 0; tx < data->tile_w; tx++) {
                 uint8_t idx = tile_data[ty * data->tile_w + tx];
@@ -483,5 +583,4 @@ void draw_map_layer(MapLayerData *data, int map_width, int tile_size, int cam_x,
         }
     }
 
-    free(file_buf);
 }
