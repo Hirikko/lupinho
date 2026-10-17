@@ -4,6 +4,7 @@
 
 #include "ui.h"
 #include "font.h"
+#include "hardware_constraints.h"
 
 //----------------------------------------------------------------------------------
 // Global vars
@@ -334,6 +335,8 @@ void clear_frame_buffer() {
 // Tile Functions
 //----------------------------------------------------------------------------------
 void draw_tile(const char *path, int width, int height, int tile_index, int x, int y, bool flipped) {
+    if (!hardware_constraints_try_drawlist(0, HARDWARE_DRAWLIST_COMMAND_TILE)) return;
+
     x -= camera_x;
     y -= camera_y;
 
@@ -346,12 +349,14 @@ void draw_tile(const char *path, int width, int height, int tile_index, int x, i
         return;
     }
 
+    hardware_constraints_add_sd_transaction();
     fseek(f, data_offset, SEEK_SET);
 
     uint8_t *data = (uint8_t *) malloc(tile_size);
     if (!data) { fclose(f); return; }
 
-    fread(data, 1, tile_size, f);
+    size_t bytes_read = fread(data, 1, tile_size, f);
+    hardware_constraints_add_sd_bytes((uint32_t)bytes_read);
     fclose(f);
 
     for (int row = 0; row < height; row++) {
@@ -371,6 +376,8 @@ void draw_tile(const char *path, int width, int height, int tile_index, int x, i
 // Sprite Functions
 //----------------------------------------------------------------------------------
 void draw_spr(const char *path, int width, int height, int x, int y, bool flipped) {
+    if (!hardware_constraints_try_drawlist(0, HARDWARE_DRAWLIST_COMMAND_SPR)) return;
+
     x -= camera_x;
     y -= camera_y;
 
@@ -380,11 +387,14 @@ void draw_spr(const char *path, int width, int height, int x, int y, bool flippe
         return;
     }
 
+    hardware_constraints_add_sd_transaction();
     int data_size = width * height;
     uint8_t *data = (uint8_t *) malloc(data_size);
     if (!data) { fclose(f); return; }
 
-    fread(data, 1, data_size, f);
+    size_t bytes_read = fread(data, 1, data_size, f);
+    hardware_constraints_add_sd_bytes((uint32_t)bytes_read);
+    hardware_constraints_add_sprite_load();
     fclose(f);
 
     for (int row = 0; row < height; row++) {
@@ -429,6 +439,7 @@ void draw_map_layer(MapLayerData *data, int map_width, int tile_size, int cam_x,
         return;
     }
 
+    hardware_constraints_add_sd_transaction();
     fseek(f, 0, SEEK_END);
     long file_size = ftell(f);
     fseek(f, 0, SEEK_SET);
@@ -436,7 +447,8 @@ void draw_map_layer(MapLayerData *data, int map_width, int tile_size, int cam_x,
     uint8_t *file_buf = (uint8_t *)malloc(file_size);
     if (!file_buf) { fclose(f); return; }
 
-    fread(file_buf, 1, file_size, f);
+    size_t bytes_read = fread(file_buf, 1, (size_t)file_size, f);
+    hardware_constraints_add_sd_bytes((uint32_t)bytes_read);
     fclose(f);
 
     int tile_pixels = data->tile_w * data->tile_h;
@@ -456,6 +468,8 @@ void draw_map_layer(MapLayerData *data, int map_width, int tile_size, int cam_x,
         int row = map_idx / map_width;
         int sx  = col * tile_size + cam_x - camera_x;
         int sy  = row * tile_size + cam_y - camera_y;
+
+        if (!hardware_constraints_try_drawlist(0, HARDWARE_DRAWLIST_COMMAND_TILE)) continue;
 
         uint8_t *tile_data = file_buf + offset;
         for (int ty = 0; ty < data->tile_h; ty++) {
