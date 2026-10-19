@@ -422,7 +422,16 @@ Image generate_image_from_frame_buffer() {
 
 void draw_frame_buffer() {
     Image image = generate_image_from_frame_buffer();
-    scene = LoadTextureFromImage(image);
+
+    // Keep one persistent 480x270 texture instead of creating and destroying a
+    // GPU texture every frame. Reusing the texture avoids the repeated
+    // LoadTexture/UnloadTexture messages in the browser console and matches
+    // the intended framebuffer -> VRAM update model more closely.
+    if (scene.id == 0) {
+        scene = LoadTextureFromImage(image);
+    } else {
+        UpdateTexture(scene, image.data);
+    }
 
     Rectangle source = { 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT };
     Rectangle dest = { 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT };
@@ -436,8 +445,6 @@ void clear_frame_buffer() {
     for(int i = 0; i < SCREEN_HEIGHT; i++) {
         memset(frame_buffer[i], 0, SCREEN_WIDTH);
     }
-
-    UnloadTexture(scene);
 }
 
 //----------------------------------------------------------------------------------

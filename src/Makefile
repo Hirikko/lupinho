@@ -5,10 +5,10 @@ CC = emcc
 CC_NATIVE = gcc
 
 # Source Files
-SRC = main.c ui.c lua_api.c hardware_constraints.c
+SRC = main.c ui.c lua_api.c lupi_functions.c hardware_constraints.c
 
 # Output File
-OUTPUT = ../dist/game.html
+OUTPUT = ../site/dist/game.html
 
 # Raylib Directories
 RAYLIB_SRC = libs/web/raylib-web
@@ -16,12 +16,12 @@ RAYLIB_INCLUDE = -Ilibs/web/raylib-web
 RAYLIB_LIB = libs/web/raylib-web/libraylib.web.a
 
 # Lua Configuration
-LUA_WEB_INCLUDE = -Ilibs/web/lua-web
+LUA_WEB_INCLUDE = -Ilibs/linux/lua-5.5.1/src
 LUA_WEB_LIB = libs/web/lua-web/liblua.web.a
 
-# Lua 5.5.0 (compiled with binary literal support)
-LUA_55_INCLUDE = -Ilibs/linux/lua-5.5.0/src
-LUA_55_LIB = libs/linux/lua-5.5.0/src/liblua.a
+# Lua 5.5.1 (with Lupi 0b/0B binary literal support)
+LUA_55_INCLUDE = -Ilibs/linux/lua-5.5.1/src
+LUA_55_LIB = libs/linux/lua-5.5.1/src/liblua.a
 
 # Native (Linux) Libraries
 NATIVE_LIBS = -lraylib $(LUA_55_LIB) -lm -ldl -lpthread -lX11 -larchive
@@ -33,7 +33,7 @@ STATIC_LIBS = $(RAYLIB_LINUX_STATIC) $(LUA_55_LIB)
 STATIC_LIBS_FLAGS = -Wl,-Bstatic $(RAYLIB_LINUX_STATIC) $(LUA_55_LIB) -Wl,-Bdynamic -lm -ldl -lpthread -lX11 -larchive
 
 # Native (Linux) Source Files
-SRC_NATIVE = main.c ui.c lua_api.c hardware_constraints.c zip.c
+SRC_NATIVE = main.c ui.c lua_api.c zip.c hardware_constraints.c
 
 # Compilation Flags
 CFLAGS = -Wall -std=c99 -D_DEFAULT_SOURCE -Wno-missing-braces
@@ -55,16 +55,21 @@ OPTIMIZATION = -O2
 
 # Debug/Production Flags
 # Production flags without closure compiler (causes issues with Raylib)
-DEBUG_FLAGS = -DDEBUG_MODE -DLUPI_HARDWARE_DEBUG
+DEBUG_FLAGS = -DDEBUG_MODE
 PROD_FLAGS = -O3 -s ASSERTIONS=0 -s DISABLE_EXCEPTION_CATCHING=1 -s ELIMINATE_DUPLICATE_FUNCTIONS=1 -DPRODUCTION
 
-# Debug Target (web with hardware debug overlay)
-debug: $(SRC)
-	$(CC) $(SRC) -o $(OUTPUT) $(RAYLIB_INCLUDE) $(LUA_WEB_INCLUDE) $(CFLAGS) $(EMFLAGS) $(DEBUG_FLAGS) $(OPTIMIZATION) $(LUA_WEB_LIB) $(RAYLIB_LIB)
+# Rebuild Lua 5.5.1 static library for WebAssembly using Emscripten.
+# Run after activating the Emscripten SDK environment.
+lua-web:
+	./libs/web/lua-web/build_lua_web.sh
 
 # Web Target (development with debug)
 web: $(SRC)
 	$(CC) $(SRC) -o $(OUTPUT) $(RAYLIB_INCLUDE) $(LUA_WEB_INCLUDE) $(CFLAGS) $(EMFLAGS) $(OPTIMIZATION) $(LUA_WEB_LIB) $(RAYLIB_LIB)
+
+# Debug target with hardware metrics overlay.
+debug: $(SRC)
+	$(CC) $(SRC) -o $(OUTPUT) $(RAYLIB_INCLUDE) $(LUA_WEB_INCLUDE) $(CFLAGS) $(EMFLAGS) -DDEBUG_MODE -DLUPI_HARDWARE_DEBUG $(OPTIMIZATION) $(LUA_WEB_LIB) $(RAYLIB_LIB)
 
 # Production Target (optimized, no debug)
 production: $(SRC)
@@ -93,8 +98,8 @@ static: $(SRC_NATIVE) $(RAYLIB_LINUX_STATIC)
 
 # Clean generated files
 clean:
-	rm -rf ../dist/webgame/
-	rm -f $(OUTPUT) game.js game.wasm lupi_emulator ../dist/lupinho ../dist/lupinho-static
+	rm -f ../site/dist/*
+	rm -f ../dist/lupinho ../dist/lupinho-static
 
 # Help
 help:
@@ -102,8 +107,7 @@ help:
 	@echo "======================"
 	@echo ""
 	@echo "Targets:"
-	@echo "  make debug       - Build for WebAssembly with hardware debug overlay
-	@echo "  make web         - Build for WebAssembly (development mode)"
+	@echo "  make web         - Build for WebAssembly (development mode with debug)"
 	@echo "  make production  - Build for WebAssembly (optimized, no debug)"
 	@echo "  make web-game GAME_PATH=game.lupi - Build for Web with embedded .lupi game (output: dist/webgame/)"
 	@echo "  make linux       - Build for Linux desktop (requires raylib, libarchive)"
@@ -118,4 +122,4 @@ help:
 	@echo "Note: For WebAssembly builds, Lua must be compiled with Emscripten."
 	@echo "      If you get linking errors, you may need to compile Lua with emcc."
 
-.PHONY: web production linux static clean help
+.PHONY: lua-web web debug production web-game linux static clean help

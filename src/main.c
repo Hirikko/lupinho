@@ -23,6 +23,38 @@ static volatile int game_is_loading = 0;
 static char temp_game_dir[512] = "";
 #endif
 
+static void draw_lupinho_cursor(void) {
+    if (!IsCursorOnScreen()) return;
+
+    Vector2 p = GetMousePosition();
+    if (p.x < 0 || p.y < 0 || p.x >= SCREEN_WIDTH || p.y >= SCREEN_HEIGHT) return;
+
+    // Small pixel-style arrow: black outline with a white interior.
+    Vector2 shadow[] = {
+        {p.x, p.y},
+        {p.x, p.y + 16},
+        {p.x + 5, p.y + 12},
+        {p.x + 9, p.y + 19},
+        {p.x + 13, p.y + 17},
+        {p.x + 9, p.y + 10},
+        {p.x + 16, p.y + 10}
+    };
+
+    DrawTriangleFan(shadow, 7, BLACK);
+
+    Vector2 cursor[] = {
+        {p.x + 1, p.y + 1},
+        {p.x + 1, p.y + 13},
+        {p.x + 5, p.y + 10},
+        {p.x + 9, p.y + 17},
+        {p.x + 11, p.y + 16},
+        {p.x + 7, p.y + 9},
+        {p.x + 14, p.y + 9}
+    };
+
+    DrawTriangleFan(cursor, 7, RAYWHITE);
+}
+
 void UpdateDrawFrame() {
     #if defined(PLATFORM_WEB)
     if (game_is_loading) return;
@@ -67,6 +99,8 @@ void UpdateDrawFrame() {
     }
     #endif
 
+    draw_lupinho_cursor();
+
     #ifndef PRODUCTION
     // DrawFPS(10, 10); // DEBUG
     #endif
@@ -110,17 +144,16 @@ static int ends_with(const char *str, const char *suffix) {
 
 #if defined(PLATFORM_WEB)
 int main() {
+    SetTraceLogLevel(LOG_WARNING);
+
     lua_api_init();
 
     #if defined(AUTO_LOAD_GAME)
     lua_api_setup_game("/loaded_game");
     #endif
 
-    #ifndef DEBUG_MODE
-    SetTraceLogLevel(LOG_WARNING);
-    #endif
-
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Lupi Emulator");
+    HideCursor();
     SetTargetFPS(60);
 
     emscripten_set_main_loop(UpdateDrawFrame, 0, 1);
@@ -176,10 +209,9 @@ int main(int argc, char *argv[]) {
     lua_api_setup_game(game_dir);
 
     // Initialize Raylib window
-    #ifndef DEBUG_MODE
     SetTraceLogLevel(LOG_WARNING);
-    #endif
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Lupi Emulator");
+    HideCursor();
     SetTargetFPS(60);
 
     while (!WindowShouldClose())

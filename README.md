@@ -98,7 +98,7 @@ make debug
 ## Ainda em Desenvolvimento
 `make debug` - Esta versão tem o objetivo de adicionar os [Limites](https://github.com/lupi-org-br/lupinho/issues/12) e comandos do Lupi no Lupinho.
 
-Atualmente `Palette.hex` e `Sprites.find` foram adicionados.  
+Atualmente `Palette.hex`, `Sprites.find`, `ui.mouse` e `ui.readtext` foram adicionados.  
 Para ativar os controles do overlay e limitação, adicione isto no seu game.lua ou main.lua:
 ```
 LUPI_HARDWARE_CONSTRAINTS = true           -- true Ativa / false Desativa limitações
