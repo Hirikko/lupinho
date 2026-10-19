@@ -6,7 +6,6 @@
 #include "lua_api.h"
 #include "ui.h"
 #include "raylib.h"
-#include "hardware_constraints.h"
 
 lua_State *globalLuaState = NULL;
 
@@ -28,9 +27,7 @@ int lua_draw_line(lua_State *L) {
     int color = (int)luaL_checknumber(L, 5);
 
     LineItem line = { .x1 = x1, .y1 = y1, .x2 = x2, .y2 = y2, .color_index = color };
-    if (hardware_constraints_try_drawlist(12, HARDWARE_DRAWLIST_COMMAND_RECT)) {
-        draw_line(&line);
-    }
+    draw_line(&line);
 
     return 0;
 }
@@ -47,9 +44,7 @@ int lua_draw_rect(lua_State *L) {
     int color = (int)luaL_checknumber(L, 6);
 
     RectItem rect = { .x = x, .y = y, .width = width, .height = height, .filled = filled, .color_index = color };
-    if (hardware_constraints_try_drawlist(12, HARDWARE_DRAWLIST_COMMAND_RECT)) {
-        draw_rect(&rect);
-    }
+    draw_rect(&rect);
 
     return 0;
 }
@@ -65,9 +60,7 @@ int lua_rect(lua_State *L) {
     int color = (int)luaL_checknumber(L, 5);
 
     RectItem rect = { .x = x1, .y = y1, .width = x2 - x1, .height = y2 - y1, .filled = false, .color_index = color };
-    if (hardware_constraints_try_drawlist(12, HARDWARE_DRAWLIST_COMMAND_RECT)) {
-        draw_rect(&rect);
-    }
+    draw_rect(&rect);
 
     return 0;
 }
@@ -83,9 +76,7 @@ int lua_rectfill(lua_State *L) {
     int color = (int)luaL_checknumber(L, 5);
 
     RectItem rect = { .x = x1, .y = y1, .width = x2 - x1, .height = y2 - y1, .filled = true, .color_index = color };
-    if (hardware_constraints_try_drawlist(12, HARDWARE_DRAWLIST_COMMAND_RECT)) {
-        draw_rect(&rect);
-    }
+    draw_rect(&rect);
 
     return 0;
 }
@@ -107,9 +98,7 @@ int lua_draw_circle(lua_State *L) {
         .filled = filled, .color_index = color,
         .has_border = border, .border_color_index = border_color,
     };
-    if (hardware_constraints_try_drawlist(12, HARDWARE_DRAWLIST_COMMAND_CIRCLE)) {
-        draw_circle(&circle);
-    }
+    draw_circle(&circle);
 
     return 0;
 }
@@ -128,9 +117,7 @@ int lua_circfill(lua_State *L) {
         .filled = true, .color_index = color,
         .has_border = true, .border_color_index = color,
     };
-    if (hardware_constraints_try_drawlist(12, HARDWARE_DRAWLIST_COMMAND_CIRCLE)) {
-        draw_circle(&circle);
-    }
+    draw_circle(&circle);
 
     return 0;
 }
@@ -153,9 +140,7 @@ int lua_trisfill(lua_State *L) {
         .p3_x = p3_x, .p3_y = p3_y,
         .color_index = color,
     };
-    if (hardware_constraints_try_drawlist(20, HARDWARE_DRAWLIST_COMMAND_TRIANGLE)) {
-        draw_triangle(&triangle);
-    }
+    draw_triangle(&triangle);
 
     return 0;
 }
@@ -303,9 +288,7 @@ int lua_btnp(lua_State *L) {
 int lua_cls(lua_State *L) {
     int color = (int)luaL_checknumber(L, 1);
     ClearItem clear = { .color_index = color };
-    if (hardware_constraints_try_drawlist(16, HARDWARE_DRAWLIST_COMMAND_CLS)) {
-        draw_clear(&clear);
-    }
+    draw_clear(&clear);
 
     return 0;
 }
@@ -330,10 +313,7 @@ int lua_fillp(lua_State *L) {
         bytes[i] = (uint8_t)(int)luaL_checknumber(L, i + 1);
     }
 
-    uint32_t cost = (nargs == 0) ? 4u : 12u;
-    if (hardware_constraints_try_drawlist(cost, HARDWARE_DRAWLIST_COMMAND_FILLP)) {
-        set_fillp(bytes, nargs);
-    }
+    set_fillp(bytes, nargs);
     return 0;
 }
 
@@ -537,17 +517,13 @@ int lua_camera(lua_State *L) {
 //----------------------------------------------------------------------------------
 int lua_clip(lua_State *L) {
     if (lua_gettop(L) == 0) {
-        if (hardware_constraints_try_drawlist(4, HARDWARE_DRAWLIST_COMMAND_CLIP)) {
-            reset_clip();
-        }
+        reset_clip();
     } else {
         int x = (int)luaL_checknumber(L, 1);
         int y = (int)luaL_checknumber(L, 2);
         int w = (int)luaL_checknumber(L, 3);
         int h = (int)luaL_checknumber(L, 4);
-        if (hardware_constraints_try_drawlist(12, HARDWARE_DRAWLIST_COMMAND_CLIP)) {
-            set_clip(x, y, w, h);
-        }
+        set_clip(x, y, w, h);
     }
     return 0;
 }
@@ -582,11 +558,7 @@ int lua_print(lua_State *L) {
     int y = (int)luaL_checknumber(L, 3);
     int color = (int)luaL_checknumber(L, 4);
 
-    size_t text_length = strlen(text);
-    uint32_t cost = (uint32_t)(16 + (text_length + 3) / 4);
-    if (hardware_constraints_try_drawlist(cost, HARDWARE_DRAWLIST_COMMAND_PRINT)) {
-        draw_print(text, x, y, color);
-    }
+    draw_print(text, x, y, color);
 
     return 0;
 }
@@ -721,335 +693,12 @@ void inject_sprites_global(lua_State *L, const char *manifest_path, const char *
 }
 
 //----------------------------------------------------------------------------------
-// Native Lupi compatibility helpers
-//
-// These replace the temporary Lua files:
-//   - lupinho-compat.lua  -> Sprites.find
-//   - palt-hex-compat.lua -> Palette.rgb / Palette.hex
-//
-// The behavior follows the supplied Lua implementations. The helpers live in
-// the Lupinho runtime so games no longer need to load these compatibility files.
-//----------------------------------------------------------------------------------
-
-static int lua_sprites_find_recursive(lua_State *L, int table_index, const char *name, int visited_index) {
-    table_index = lua_absindex(L, table_index);
-    visited_index = lua_absindex(L, visited_index);
-
-    if (!lua_istable(L, table_index)) {
-        return 0;
-    }
-
-    // Avoid revisiting the same table (Sprites may contain shared tables/cycles).
-    lua_pushvalue(L, table_index);
-    lua_rawget(L, visited_index);
-    if (lua_toboolean(L, -1)) {
-        lua_pop(L, 1);
-        return 0;
-    }
-    lua_pop(L, 1);
-
-    lua_pushvalue(L, table_index);
-    lua_pushboolean(L, 1);
-    lua_rawset(L, visited_index);
-
-    // First, match the requested name at this level.
-    lua_pushnil(L);
-    while (lua_next(L, table_index) != 0) {
-        // Stack: ... key, value
-        if (lua_isstring(L, -2) &&
-            strcmp(lua_tostring(L, -2), name) == 0 &&
-            lua_istable(L, -1)) {
-            // The value is already the top stack item. Returning 1 returns it.
-            return 1;
-        }
-        lua_pop(L, 1); // value; keep key for lua_next
-    }
-
-    // Then recurse into child tables.
-    lua_pushnil(L);
-    while (lua_next(L, table_index) != 0) {
-        // Stack: ... key, value
-        if (lua_istable(L, -1)) {
-            if (lua_sprites_find_recursive(L, -1, name, visited_index)) {
-                // Recursive call leaves the found table as the top stack item.
-                // Any iteration bookkeeping below it is discarded automatically
-                // when this C function returns its single result.
-                return 1;
-            }
-        }
-        lua_pop(L, 1); // value; keep key for lua_next
-    }
-
-    return 0;
-}
-
-static int lua_sprites_find(lua_State *L) {
-    const char *path = luaL_checkstring(L, 1);
-
-    lua_getglobal(L, "Sprites");
-    if (!lua_istable(L, -1)) {
-        lua_pop(L, 1);
-        return luaL_error(L, "Sprites.find: sprite não encontrado: %s", path);
-    }
-
-    // Direct path traversal, matching the supplied Lua implementation:
-    // for part in string.gmatch(path, "[^/]+") do current = current[part] end
-    int current_index = lua_gettop(L);
-    const char *cursor = path;
-    char part[256];
-    bool direct_failed = false;
-
-    while (*cursor != '\0') {
-        size_t len = 0;
-        while (cursor[len] != '\0' && cursor[len] != '/') {
-            len++;
-        }
-
-        if (len == 0 || len >= sizeof(part)) {
-            direct_failed = true;
-            break;
-        }
-
-        memcpy(part, cursor, len);
-        part[len] = '\0';
-
-        if (!lua_istable(L, current_index)) {
-            direct_failed = true;
-            break;
-        }
-
-        lua_getfield(L, current_index, part);
-        if (!lua_istable(L, -1)) {
-            lua_pop(L, 1);
-            direct_failed = true;
-            break;
-        }
-
-        // Replace the current table with the next table without leaving
-        // temporary values on the stack.
-        lua_replace(L, current_index);
-
-        cursor += len;
-        if (*cursor == '/') {
-            cursor++;
-        }
-    }
-
-    if (!direct_failed && lua_istable(L, current_index)) {
-        // The sprite table is the only result returned by this function.
-        return 1;
-    }
-
-    lua_pop(L, 1); // failed direct result (Sprites)
-
-    // Fallback: search by the final path component, exactly like the supplied
-    // Lua compatibility function.
-    const char *last_slash = strrchr(path, '/');
-    const char *name = last_slash ? last_slash + 1 : path;
-
-    if (*name != '\0') {
-        lua_getglobal(L, "Sprites");
-        if (lua_istable(L, -1)) {
-            int sprites_index = lua_gettop(L);
-            lua_newtable(L);
-            int visited_index = lua_gettop(L);
-
-            if (lua_sprites_find_recursive(L, sprites_index, name, visited_index)) {
-                // The found sprite table is the top stack item.
-                return 1;
-            }
-
-            lua_pop(L, 1); // visited
-        }
-        lua_pop(L, 1); // Sprites
-    }
-
-    return luaL_error(L, "Sprites.find: sprite não encontrado: %s", path);
-}
-
-static void palette_reset_caches(lua_State *L);
-
-static int lua_palette_rgb(lua_State *L) {
-    int r = (int)luaL_checknumber(L, 1);
-    int g = (int)luaL_checknumber(L, 2);
-    int b = (int)luaL_checknumber(L, 3);
-
-    uint32_t key = ((uint32_t)(r & 0xFF) << 16) |
-                   ((uint32_t)(g & 0xFF) << 8) |
-                   (uint32_t)(b & 0xFF);
-
-    // Private cache table in the Lua registry.
-    lua_pushlightuserdata(L, (void *)&lua_palette_rgb);
-    lua_rawget(L, LUA_REGISTRYINDEX);
-    if (lua_istable(L, -1)) {
-        lua_pushinteger(L, (lua_Integer)key);
-        lua_rawget(L, -2);
-        if (!lua_isnil(L, -1)) {
-            return 1;
-        }
-        lua_pop(L, 1);
-    }
-    lua_pop(L, 1);
-
-    int best_idx = 1;
-    int64_t min_dist = INT64_MAX;
-
-    lua_getglobal(L, "Palette");
-    if (!lua_istable(L, -1)) {
-        lua_pop(L, 1);
-        lua_pushinteger(L, 0);
-        return 1;
-    }
-
-    size_t palette_len = lua_rawlen(L, -1);
-    for (size_t i = 1; i <= palette_len; i++) {
-        lua_rawgeti(L, -1, (lua_Integer)i);
-        if (lua_isnumber(L, -1)) {
-            uint32_t value = (uint32_t)lua_tointeger(L, -1);
-
-            // Exact conversion from the supplied palt-hex-compat.lua.
-            int b5 = (int)((value / 1024U) % 32U);
-            int g5 = (int)((value / 32U) % 32U);
-            int r5 = (int)(value % 32U);
-
-            int cr = r5 * 8 + r5 / 4;
-            int cg = g5 * 8 + g5 / 4;
-            int cb = b5 * 8 + b5 / 4;
-
-            int dr = cr - r;
-            int dg = cg - g;
-            int db = cb - b;
-            int64_t dist = (int64_t)dr * dr + (int64_t)dg * dg + (int64_t)db * db;
-
-            if (dist < min_dist) {
-                min_dist = dist;
-                best_idx = (int)i;
-            }
-        }
-        lua_pop(L, 1);
-    }
-    lua_pop(L, 1); // Palette
-
-    lua_pushinteger(L, (lua_Integer)(best_idx - 1));
-    lua_pushlightuserdata(L, (void *)&lua_palette_rgb);
-    lua_rawget(L, LUA_REGISTRYINDEX);
-    if (lua_istable(L, -1)) {
-        lua_pushinteger(L, (lua_Integer)key);
-        lua_pushvalue(L, -3); // result
-        lua_rawset(L, -3);
-    }
-    lua_pop(L, 1); // cache table
-
-    return 1;
-}
-
-static int lua_palette_hex(lua_State *L) {
-    // Cache is keyed by the original Lua value, just like the supplied Lua code.
-    lua_pushlightuserdata(L, (void *)&lua_palette_hex);
-    lua_rawget(L, LUA_REGISTRYINDEX);
-    if (lua_istable(L, -1)) {
-        lua_pushvalue(L, 1);
-        lua_rawget(L, -2);
-        if (!lua_isnil(L, -1)) {
-            return 1;
-        }
-        lua_pop(L, 1);
-    }
-    lua_pop(L, 1);
-
-    int r = 0, g = 0, b = 0;
-
-    if (lua_isnumber(L, 1)) {
-        lua_Integer number = lua_tointeger(L, 1);
-        r = (int)((number / 65536) % 256);
-        g = (int)((number / 256) % 256);
-        b = (int)(number % 256);
-    } else if (lua_isstring(L, 1)) {
-        const char *value = lua_tostring(L, 1);
-        size_t len = strlen(value);
-        const char *clean = value;
-
-        if (len > 0 && clean[0] == '#') {
-            clean++;
-        }
-        if (clean[0] == '0' && (clean[1] == 'x' || clean[1] == 'X')) {
-            clean += 2;
-        }
-
-        char *end = NULL;
-        unsigned long number = strtoul(clean, &end, 16);
-        if (end == clean || *end != '\0') {
-            lua_pushinteger(L, 0);
-            return 1;
-        }
-
-        r = (int)((number / 65536UL) % 256UL);
-        g = (int)((number / 256UL) % 256UL);
-        b = (int)(number % 256UL);
-    } else {
-        lua_pushinteger(L, 0);
-        return 1;
-    }
-
-    lua_pushcfunction(L, lua_palette_rgb);
-    lua_pushinteger(L, r);
-    lua_pushinteger(L, g);
-    lua_pushinteger(L, b);
-    lua_call(L, 3, 1);
-
-    lua_pushlightuserdata(L, (void *)&lua_palette_hex);
-    lua_rawget(L, LUA_REGISTRYINDEX);
-    if (lua_istable(L, -1)) {
-        lua_pushvalue(L, 1);
-        lua_pushvalue(L, -3); // result
-        lua_rawset(L, -3);
-    }
-    lua_pop(L, 1); // cache table
-
-    return 1;
-}
-
-static void palette_reset_caches(lua_State *L) {
-    lua_pushlightuserdata(L, (void *)&lua_palette_rgb);
-    lua_newtable(L);
-    lua_rawset(L, LUA_REGISTRYINDEX);
-
-    lua_pushlightuserdata(L, (void *)&lua_palette_hex);
-    lua_newtable(L);
-    lua_rawset(L, LUA_REGISTRYINDEX);
-}
-
-static void install_sprites_find(lua_State *L) {
-    lua_getglobal(L, "Sprites");
-    if (lua_istable(L, -1)) {
-        lua_pushcfunction(L, lua_sprites_find);
-        lua_setfield(L, -2, "find");
-    }
-    lua_pop(L, 1);
-}
-
-static void install_palette_helpers(lua_State *L) {
-    lua_getglobal(L, "Palette");
-    if (lua_istable(L, -1)) {
-        palette_reset_caches(L);
-
-        lua_pushcfunction(L, lua_palette_rgb);
-        lua_setfield(L, -2, "rgb");
-
-        lua_pushcfunction(L, lua_palette_hex);
-        lua_setfield(L, -2, "hex");
-    }
-    lua_pop(L, 1);
-}
-
-//----------------------------------------------------------------------------------
 // Sprites preload loader — called when Lua does require("sprites")
 //----------------------------------------------------------------------------------
 static int lua_sprites_loader(lua_State *L) {
     char manifest_path[512];
     snprintf(manifest_path, sizeof(manifest_path), "%s/lupi_manifest.txt", current_game_dir);
     inject_sprites_global(L, manifest_path, current_game_dir);
-    install_sprites_find(L);
     lua_getglobal(L, "Sprites");
     return 1;
 }
@@ -1167,34 +816,6 @@ void lua_api_init(void) {
 }
 
 //----------------------------------------------------------------------------------
-// Startup palette hook
-//
-// Some games create/replace the global Palette table while game.lua is loading
-// and then call Palette.hex() from a required module such as const.lua.
-// Installing the helper only after luaL_dofile(game.lua) is therefore too late.
-// The hook runs only during startup and installs the native helpers as soon as
-// a Palette table exists. It is removed immediately after game.lua finishes.
-//----------------------------------------------------------------------------------
-static void lua_palette_startup_hook(lua_State *L, lua_Debug *ar) {
-    (void)ar;
-
-    lua_getglobal(L, "Palette");
-    bool has_palette = lua_istable(L, -1);
-    bool has_hex = false;
-
-    if (has_palette) {
-        lua_getfield(L, -1, "hex");
-        has_hex = lua_isfunction(L, -1);
-        lua_pop(L, 1);
-    }
-    lua_pop(L, 1);
-
-    if (has_palette && !has_hex) {
-        install_palette_helpers(L);
-    }
-}
-
-//----------------------------------------------------------------------------------
 // lua_api_setup_game — configure package path, register sprites preload, load game
 //----------------------------------------------------------------------------------
 void lua_api_setup_game(const char *game_dir) {
@@ -1216,24 +837,10 @@ void lua_api_setup_game(const char *game_dir) {
     char game_path[512];
     snprintf(game_path, sizeof(game_path), "%s/game.lua", game_dir);
 
-    // Palette may be created inside game.lua before const.lua (or another
-    // required module) calls Palette.hex(). Keep the hook active only while
-    // the game is loading so runtime performance is unaffected.
-    lua_sethook(globalLuaState, lua_palette_startup_hook, LUA_MASKCALL | LUA_MASKLINE | LUA_MASKCOUNT, 1);
-
     if (luaL_dofile(globalLuaState, game_path) != LUA_OK) {
         printf("Error loading game: %s\n", lua_tostring(globalLuaState, -1));
         lua_pop(globalLuaState, 1);
     }
-
-    // Never keep the startup hook during gameplay.
-    lua_sethook(globalLuaState, NULL, 0, 0);
-
-    // Final installation covers games that create Palette late during startup.
-    install_sprites_find(globalLuaState);
-    install_palette_helpers(globalLuaState);
-
-    hardware_constraints_update_from_lua();
 }
 
 //----------------------------------------------------------------------------------
