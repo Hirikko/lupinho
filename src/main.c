@@ -12,7 +12,7 @@
 #endif
 
 #if defined(PLATFORM_WEB)
-#include <emscripten/emscripten.h>
+    #include <emscripten/emscripten.h>
 #endif
 
 #if defined(PLATFORM_WEB)
@@ -24,9 +24,9 @@ static char temp_game_dir[512] = "";
 #endif
 
 void UpdateDrawFrame() {
-    #if defined(PLATFORM_WEB)
+#if defined(PLATFORM_WEB)
     if (game_is_loading) return;
-    #endif
+#endif
     hardware_constraints_begin_frame();
     lua_api_call_update();
 
@@ -36,7 +36,7 @@ void UpdateDrawFrame() {
 
     draw_frame_buffer();
 
-    #if defined(LUPI_HARDWARE_DEBUG)
+#if defined(LUPI_HARDWARE_DEBUG)
     if (hardware_debug_overlay_enabled()) {
         const HardwareConstraintMetrics *metrics = hardware_constraints_get_metrics();
         const int panel_width = 228;
@@ -65,7 +65,7 @@ void UpdateDrawFrame() {
         DrawText(TextFormat("Rejected: %u", metrics->drawlist_rejected_commands), panel_x + 7, panel_y + 21 + line_height * 14, 8, metrics->drawlist_rejected_commands > 0 ? RED : RAYWHITE);
         DrawText(hardware_constraints_enabled() ? "Limits: ON" : "Limits: OFF", panel_x + 7, panel_y + 21 + line_height * 15, 8, hardware_constraints_enabled() ? GREEN : YELLOW);
     }
-    #endif
+#endif
 
     #ifndef PRODUCTION
     // DrawFPS(10, 10); // DEBUG
@@ -112,13 +112,13 @@ static int ends_with(const char *str, const char *suffix) {
 int main() {
     lua_api_init();
 
-    #if defined(AUTO_LOAD_GAME)
+#if defined(AUTO_LOAD_GAME)
     lua_api_setup_game("/loaded_game");
-    #endif
+#endif
 
-    #ifndef DEBUG_MODE
+#ifndef DEBUG_MODE
     SetTraceLogLevel(LOG_WARNING);
-    #endif
+#endif
 
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Lupi Emulator");
     SetTargetFPS(60);
@@ -176,9 +176,9 @@ int main(int argc, char *argv[]) {
     lua_api_setup_game(game_dir);
 
     // Initialize Raylib window
-    #ifndef DEBUG_MODE
+#ifndef DEBUG_MODE
     SetTraceLogLevel(LOG_WARNING);
-    #endif
+#endif
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Lupi Emulator");
     SetTargetFPS(60);
 
