@@ -78,9 +78,65 @@ lupinho/
 ### Pré-requisitos
 
 - [Emscripten SDK](https://emscripten.org/docs/getting_started/downloads.html) instalado e ativado
-- Caso use Sistema Linux, procure por emscripten na loja de sua distro.
 - Se usa Windows, recomendo instalar o Ubuntu via WSL (Subsistema Linux para windows) e realizar os procedimentos lá.
 
+### 📥 Como Instalar o Emscripten
+Antes de começar, verifique se você possui os pré-requisitos necessários para o seu sistema operacional.
+
+O **Emscripten SDK (`emsdk`)** é a ferramenta oficial que gerencia tudo para você. Ela funciona através de comandos simples no terminal.
+
+#### 1. Baixe o Emscripten
+
+Você pode baixar o `emsdk` usando o **Git** ou pelo site do Github.
+
+> **Dica para iniciantes:** Se você não tem o Git instalado ou prefere não usá-lo, basta ir até a [página do Emscripten no GitHub](https://github.com/emscripten-core/emsdk), clicar no botão verde **"Code"** e selecionar **"Download ZIP"**. Depois, extraia o arquivo ZIP em uma pasta no seu computador e abra o terminal dentro dessa pasta.
+
+Abra o seu terminal na sua home (`/home/$USER/`) ou no local que deseja instalar o Emscripten e execute:
+Bash
+```
+# Baixa o repositório do emsdk
+cd /home/$USER/
+git clone https://github.com/emscripten-core/emsdk.git
+
+# Se você baixou como zip
+unzip emsdk*
+
+# Entra na pasta do emsdk
+cd emsdk
+```
+#### 2. Instale e Ative as Ferramentas
+
+Com a pasta aberta no terminal, execute os comandos abaixo para baixar a versão mais recente dos programas e ativá-la:
+
+Bash
+```
+# Atualiza para a versão mais recente do emsdk (se você usou o git clone agora pouco, pode pular este)
+git pull
+
+# Baixa e instala as ferramentas mais recentes do SDK
+./emsdk install latest
+
+# Torna a versão "latest" (mais recente) ativa para o seu usuário (cria o arquivo de configuração)
+./emsdk activate latest
+```
+#### 3. Configure o Ambiente no Terminal
+Para que o seu computador saiba onde o Emscripten está, você precisa ativar as variáveis de ambiente no terminal atual:  
+  
+>  `echo 'source "/home/$USER/emsdk/emsdk_env.sh"' >> $HOME/.bash_profile`  
+    
+Se você não quiser digitar o comando de ativação toda vez que abrir o terminal novo, siga as instruções que aparecem na tela logo após o comando `emsdk activate` para salvá-lo automaticamente no seu sistema! (Passo 3)
+
+#### 🔍 Dicas Úteis
+- **Mudou de computador ou de pasta?**  
+Se você mover a pasta do Emscripten de lugar (por exemplo, colocando-a em um pendrive para usar em outro computador), basta rodar novamente os comandos de ativação:  
+  
+`./emsdk activate latest` e `source ./emsdk_env.sh`  
+    
+- **Atualizações:**  
+O comando `git pull` busca a lista atual de versões, mas versões muito recentes podem demorar um pouquinho para aparecer. Se precisar, você pode rodar `./emsdk update-tags` para atualizar a lista diretamente.
+
+- **Desinstalar:**  
+Se quiser desinstalar, é só deletar a pasta emsdk inteira.
 ### Compilando
 
 ```bash
@@ -97,8 +153,9 @@ make debug
 ```
 ## Ainda em Desenvolvimento
 `make debug` - Esta versão tem o objetivo de adicionar os [Limites](https://github.com/lupi-org-br/lupinho/issues/12) e comandos do Lupi no Lupinho.
-
 Atualmente `Palette.hex`, `Sprites.find`, `ui.mouse` e `ui.readtext` foram adicionados.  
+Para mais detalhes, veja DEBUG_E_NOVAS_FUNCIONALIDADES.md  
+
 Para ativar os controles do overlay e limitação, adicione isto no seu game.lua ou main.lua:
 ```
 LUPI_HARDWARE_CONSTRAINTS = true           -- true Ativa / false Desativa limitações
@@ -109,8 +166,7 @@ LUPI_HARDWARE_DEBUG_OVERLAY_ALPHA = 0.45   -- Controle de Transparência
 ```
 ### Executando
 
-Após compilar, copie o conteúdo de **`lupinho/dist/`** e cole em **`lupinho/site/dist/`**.  
-Então volte a **`lupinho/site/`** e crie um servidor https local nesta past, abaixo temos exemplos de Python e Node.js.
+Navegue até **`lupinho/site/`** e crie um servidor https local nesta pasta, abaixo temos exemplos de Python e Node.js.
 
 #### Usando Node.js
 ```bash
