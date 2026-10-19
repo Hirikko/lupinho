@@ -51,15 +51,15 @@ bool hardware_constraints_try_drawlist(uint32_t bytes, HardwareDrawlistCommand c
     if (hardware_metrics.enabled &&
         hardware_metrics.drawlist_bytes + cost > hardware_metrics.drawlist_limit) {
         hardware_metrics.drawlist_rejected_commands++;
-    hardware_metrics.drawlist_command_rejected[command]++;
-    return false;
-        }
+        hardware_metrics.drawlist_command_rejected[command]++;
+        return false;
+    }
 
-        hardware_metrics.drawlist_bytes += cost;
-        hardware_metrics.drawlist_command_bytes[command] += cost;
-        hardware_metrics.drawlist_command_calls[command]++;
-        last_drawlist_command = command;
-        return true;
+    hardware_metrics.drawlist_bytes += cost;
+    hardware_metrics.drawlist_command_bytes[command] += cost;
+    hardware_metrics.drawlist_command_calls[command]++;
+    last_drawlist_command = command;
+    return true;
 }
 
 void hardware_constraints_add_sd_bytes(uint32_t bytes) {
