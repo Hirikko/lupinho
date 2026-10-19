@@ -445,10 +445,10 @@ int lua_map(lua_State *L) {
             strcmp(layer_key, "tilesets") == 0) {
             lua_pop(L, 1); // pop value, keep key
             continue;
-            }
+        }
 
-            // resolve tileset name via tilesets indirection
-            const char *tileset_name = layer_key;
+        // resolve tileset name via tilesets indirection
+        const char *tileset_name = layer_key;
         lua_getfield(L, map_data_idx, "tilesets");
         if (lua_istable(L, -1)) {
             int tilesets_idx = lua_absindex(L, -1);
@@ -761,8 +761,8 @@ static int lua_sprites_find_recursive(lua_State *L, int table_index, const char 
             lua_istable(L, -1)) {
             // The value is already the top stack item. Returning 1 returns it.
             return 1;
-            }
-            lua_pop(L, 1); // value; keep key for lua_next
+        }
+        lua_pop(L, 1); // value; keep key for lua_next
     }
 
     // Then recurse into child tables.
@@ -875,8 +875,8 @@ static int lua_palette_rgb(lua_State *L) {
     int b = (int)luaL_checknumber(L, 3);
 
     uint32_t key = ((uint32_t)(r & 0xFF) << 16) |
-    ((uint32_t)(g & 0xFF) << 8) |
-    (uint32_t)(b & 0xFF);
+                   ((uint32_t)(g & 0xFF) << 8) |
+                   (uint32_t)(b & 0xFF);
 
     // Private cache table in the Lua registry.
     lua_pushlightuserdata(L, (void *)&lua_palette_rgb);
