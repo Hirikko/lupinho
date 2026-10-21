@@ -762,6 +762,7 @@ static int lua_sprites_loader(lua_State *L) {
 //----------------------------------------------------------------------------------
 void lua_api_init(void) {
     lupi_functions_reset();
+    hardware_constraints_reset_lua_watchdog();
     frame_counter = 0;
     globalLuaState = luaL_newstate();
     luaL_openlibs(globalLuaState);
@@ -954,13 +955,26 @@ void lua_api_call_update(void) {
 
     poll_text_input();
 
+    if (hardware_constraints_lua_watchdog_triggered()) {
+        return;
+    }
+
     lua_getglobal(globalLuaState, "update");
     if (lua_isfunction(globalLuaState, -1)) {
         lua_pushnumber(globalLuaState, frame_counter);
         frame_counter++;
-        if (lua_pcall(globalLuaState, 1, 0, 0) != LUA_OK) {
-            printf("Error in update(): %s\n", lua_tostring(globalLuaState, -1));
-            lua_pop(globalLuaState, 1);
+
+        hardware_constraints_lua_begin_frame(globalLuaState);
+        int status = lua_pcall(globalLuaState, 1, 0, 0);
+        hardware_constraints_lua_end_frame(globalLuaState);
+
+        if (status != LUA_OK) {
+            if (hardware_constraints_lua_watchdog_triggered()) {
+                lua_pop(globalLuaState, 1);
+            } else {
+                printf("Error in update(): %s\n", lua_tostring(globalLuaState, -1));
+                lua_pop(globalLuaState, 1);
+            }
         }
     } else {
         lua_pop(globalLuaState, 1);

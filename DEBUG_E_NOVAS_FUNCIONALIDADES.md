@@ -284,14 +284,20 @@ Controla a exibição do painel de diagnóstico na tela.
 LUPI_HARDWARE_DEBUG_OVERLAY = true
 ```
 
-X Controla posição horizontal.
-Y Controla posição vertical.
+Funciona de forma parecida com ui.rect.
+
+x0 Controla posição horizontal do canto superior esquerda.
+x1 controla posição horizontal canto inferior direito.
+y0 Controla posição vertical do canto superior esquerdo.
+y1 Controla posição vertical do canto inferior direito.
 Alpha controla Transparência.
+Col controla índice da cor.
 ```lua
+LUPI_HARDWARE_CONSTRAINTS = true
+LUPI_LUA_WATCHDOG = true
 LUPI_HARDWARE_DEBUG_OVERLAY = true
-LUPI_HARDWARE_DEBUG_OVERLAY_X = 10
-LUPI_HARDWARE_DEBUG_OVERLAY_Y = 1
-LUPI_HARDWARE_DEBUG_OVERLAY_ALPHA = 0.45
+LUPI_HARDWARE_DEBUG_OVERLAY_RECT = { x0 = 0, y0 = 0, x1 = 164, y1 = 270, col = 2 }
+LUPI_HARDWARE_DEBUG_OVERLAY_ALPHA = 0.5
 ```
 Com o overlay habilitado, as métricas do frame atual são exibidas diretamente sobre o jogo.
 

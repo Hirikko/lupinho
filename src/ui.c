@@ -41,6 +41,13 @@ static void clear_file_cache(void) {
     file_cache_count = 0;
 }
 
+static bool file_cache_contains(const char *path) {
+    for (int i = 0; i < file_cache_count; i++) {
+        if (strcmp(file_cache[i].path, path) == 0) return true;
+    }
+    return false;
+}
+
 static const uint8_t *load_file_cached(const char *path, size_t *out_size, bool *out_cache_hit) {
     if (out_cache_hit) *out_cache_hit = false;
 
@@ -72,6 +79,14 @@ static const uint8_t *load_file_cached(const char *path, size_t *out_size, bool 
     }
 
     size_t size = (size_t)file_size;
+
+    // Enforce both SD budgets before allocating memory or reading file contents.
+    // Cache hits return above and therefore do not consume SD budget.
+    if (!hardware_constraints_can_read_sd((uint64_t)size)) {
+        fclose(f);
+        return NULL;
+    }
+
     uint8_t *data = NULL;
     if (size > 0) {
         data = (uint8_t *)malloc(size);
@@ -90,6 +105,9 @@ static const uint8_t *load_file_cached(const char *path, size_t *out_size, bool 
     } else {
         fclose(f);
     }
+
+    // Count the completed storage read even if caching the result later fails.
+    hardware_constraints_add_sd_read((uint64_t)size);
 
     // The cache is deliberately bounded for this diagnostic implementation.
     // If full, evict the oldest entry so newly loaded assets can remain resident.
@@ -113,9 +131,6 @@ static const uint8_t *load_file_cached(const char *path, size_t *out_size, bool 
     file_cache[file_cache_count].data = data;
     file_cache[file_cache_count].size = size;
     file_cache_count++;
-
-    hardware_constraints_add_sd_transaction();
-    hardware_constraints_add_sd_bytes((uint32_t)size);
 
     if (out_size) *out_size = size;
     return data;
@@ -496,12 +511,21 @@ void draw_spr(const char *path, int width, int height, int x, int y, bool flippe
     y -= camera_y;
 
     size_t file_size = 0;
-    bool cache_hit = false;
-    const uint8_t *data = load_file_cached(path, &file_size, &cache_hit);
+    bool cache_hit = file_cache_contains(path);
+
+    // Enforce the per-frame sprite-load budget before triggering a storage read.
+    // Sprites already present in RAM do not consume another load slot.
+    if (!cache_hit && !hardware_constraints_can_load_sprite()) {
+        return;
+    }
+
+    bool load_cache_hit = false;
+    const uint8_t *data = load_file_cached(path, &file_size, &load_cache_hit);
     if (!data) {
         printf("Warning: Could not load sprite file %s\n", path);
         return;
     }
+    cache_hit = load_cache_hit;
 
     int data_size = width * height;
     if (data_size < 0 || (size_t)data_size > file_size) {

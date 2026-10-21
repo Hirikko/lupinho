@@ -29,7 +29,6 @@ static void draw_lupinho_cursor(void) {
     Vector2 p = GetMousePosition();
     if (p.x < 0 || p.y < 0 || p.x >= SCREEN_WIDTH || p.y >= SCREEN_HEIGHT) return;
 
-    // Small pixel-style arrow: black outline with a white interior.
     Vector2 shadow[] = {
         {p.x, p.y},
         {p.x, p.y + 16},
@@ -68,34 +67,136 @@ void UpdateDrawFrame() {
 
     draw_frame_buffer();
 
+    if (hardware_constraints_lua_watchdog_triggered()) {
+        const char *warning_title = "WARNING";
+        const char *warning_message = "Limite de Instruções Lua atingido!";
+        const int box_x = 30;
+        const int box_y = 88;
+        const int box_w = SCREEN_WIDTH - 60;
+        const int box_h = 94;
+
+        DrawRectangle(box_x, box_y, box_w, box_h, Fade(BLACK, 0.92f));
+        DrawRectangleLines(box_x, box_y, box_w, box_h, RED);
+
+        int title_width = MeasureText(warning_title, 40);
+        int message_width = MeasureText(warning_message, 16);
+
+        DrawText(warning_title, (SCREEN_WIDTH - title_width) / 2, box_y + 10, 40, RED);
+        DrawText(warning_message, (SCREEN_WIDTH - message_width) / 2, box_y + 60, 16, RAYWHITE);
+    }
+
     #if defined(LUPI_HARDWARE_DEBUG)
     if (hardware_debug_overlay_enabled()) {
         const HardwareConstraintMetrics *metrics = hardware_constraints_get_metrics();
-        const int panel_width = 228;
-        const int panel_height = 208;
-        const int panel_x = metrics->overlay_x;
-        const int panel_y = metrics->overlay_y;
+        const int panel_x = metrics->overlay_x0;
+        const int panel_y = metrics->overlay_y0;
+        const int panel_width = metrics->overlay_x1 - metrics->overlay_x0;
+        const int panel_height = metrics->overlay_y1 - metrics->overlay_y0;
         const int line_height = 12;
+        const int line_y = panel_y + 21;
+        const Color normal_color = RAYWHITE;
+        const Color overlay_color = get_palette_color(metrics->overlay_col);
+        const Color limits_color = hardware_constraints_enabled() ? GREEN : RED;
+        const Color watchdog_color = (hardware_constraints_lua_watchdog_triggered() ||
+        !hardware_constraints_lua_watchdog_enabled())
+        ? RED
+        : GREEN;
 
-        DrawRectangle(panel_x, panel_y, panel_width, panel_height, Fade(BLACK, metrics->overlay_alpha));
-        DrawRectangleLines(panel_x, panel_y, panel_width, panel_height, YELLOW);
-        DrawText("LUPI HARDWARE DEBUG", panel_x + 7, panel_y + 5, 8, YELLOW);
-        DrawText(TextFormat("Drawlist: %u / %u B", metrics->drawlist_bytes, metrics->drawlist_limit), panel_x + 7, panel_y + 21, 8, RAYWHITE);
-        DrawText(TextFormat("SPR: %u B (%u)", metrics->drawlist_command_bytes[HARDWARE_DRAWLIST_COMMAND_SPR], metrics->drawlist_command_calls[HARDWARE_DRAWLIST_COMMAND_SPR]), panel_x + 7, panel_y + 21 + line_height, 8, RAYWHITE);
-        DrawText(TextFormat("TILE: %u B (%u)", metrics->drawlist_command_bytes[HARDWARE_DRAWLIST_COMMAND_TILE], metrics->drawlist_command_calls[HARDWARE_DRAWLIST_COMMAND_TILE]), panel_x + 7, panel_y + 21 + line_height * 2, 8, RAYWHITE);
-        DrawText(TextFormat("RECT: %u B (%u)", metrics->drawlist_command_bytes[HARDWARE_DRAWLIST_COMMAND_RECT], metrics->drawlist_command_calls[HARDWARE_DRAWLIST_COMMAND_RECT]), panel_x + 7, panel_y + 21 + line_height * 3, 8, RAYWHITE);
-        DrawText(TextFormat("CIRC: %u B (%u)", metrics->drawlist_command_bytes[HARDWARE_DRAWLIST_COMMAND_CIRCLE], metrics->drawlist_command_calls[HARDWARE_DRAWLIST_COMMAND_CIRCLE]), panel_x + 7, panel_y + 21 + line_height * 4, 8, RAYWHITE);
-        DrawText(TextFormat("TRIS: %u B (%u)", metrics->drawlist_command_bytes[HARDWARE_DRAWLIST_COMMAND_TRIANGLE], metrics->drawlist_command_calls[HARDWARE_DRAWLIST_COMMAND_TRIANGLE]), panel_x + 7, panel_y + 21 + line_height * 5, 8, RAYWHITE);
-        DrawText(TextFormat("PRINT: %u B (%u)", metrics->drawlist_command_bytes[HARDWARE_DRAWLIST_COMMAND_PRINT], metrics->drawlist_command_calls[HARDWARE_DRAWLIST_COMMAND_PRINT]), panel_x + 7, panel_y + 21 + line_height * 6, 8, RAYWHITE);
-        DrawText(TextFormat("CLS: %u B (%u)", metrics->drawlist_command_bytes[HARDWARE_DRAWLIST_COMMAND_CLS], metrics->drawlist_command_calls[HARDWARE_DRAWLIST_COMMAND_CLS]), panel_x + 7, panel_y + 21 + line_height * 7, 8, RAYWHITE);
-        DrawText(TextFormat("CLIP: %u B (%u)", metrics->drawlist_command_bytes[HARDWARE_DRAWLIST_COMMAND_CLIP], metrics->drawlist_command_calls[HARDWARE_DRAWLIST_COMMAND_CLIP]), panel_x + 7, panel_y + 21 + line_height * 8, 8, RAYWHITE);
-        DrawText(TextFormat("FILLP: %u B (%u)", metrics->drawlist_command_bytes[HARDWARE_DRAWLIST_COMMAND_FILLP], metrics->drawlist_command_calls[HARDWARE_DRAWLIST_COMMAND_FILLP]), panel_x + 7, panel_y + 21 + line_height * 9, 8, RAYWHITE);
-        DrawText(TextFormat("OTHER: %u B (%u)", metrics->drawlist_command_bytes[HARDWARE_DRAWLIST_COMMAND_OTHER], metrics->drawlist_command_calls[HARDWARE_DRAWLIST_COMMAND_OTHER]), panel_x + 7, panel_y + 21 + line_height * 10, 8, RAYWHITE);
-        DrawText(TextFormat("SD: %u/%u B", metrics->sd_bytes, metrics->sd_limit), panel_x + 7, panel_y + 21 + line_height * 11, 8, RAYWHITE);
-        DrawText(TextFormat("Loads: %u  SD tx: %u/%u", metrics->sprite_loads, metrics->sd_transactions, metrics->sd_transactions_limit), panel_x + 7, panel_y + 21 + line_height * 12, 8, RAYWHITE);
-        DrawText(TextFormat("SD tx over: %u", metrics->sd_rejected_transactions), panel_x + 7, panel_y + 21 + line_height * 13, 8, metrics->sd_rejected_transactions > 0 ? RED : RAYWHITE);
-        DrawText(TextFormat("Rejected: %u", metrics->drawlist_rejected_commands), panel_x + 7, panel_y + 21 + line_height * 14, 8, metrics->drawlist_rejected_commands > 0 ? RED : RAYWHITE);
-        DrawText(hardware_constraints_enabled() ? "Limits: ON" : "Limits: OFF", panel_x + 7, panel_y + 21 + line_height * 15, 8, hardware_constraints_enabled() ? GREEN : YELLOW);
+        DrawRectangle(panel_x, panel_y, panel_width, panel_height,
+                      Fade(BLACK, metrics->overlay_alpha));
+        DrawRectangleLines(panel_x, panel_y, panel_width, panel_height, overlay_color);
+        DrawText("LUPI HARDWARE DEBUG", panel_x + 7, panel_y + 5, 8, overlay_color);
+
+        DrawText(TextFormat("Drawlist: %u / %u B",
+                            metrics->drawlist_bytes, metrics->drawlist_limit),
+                            panel_x + 7, line_y, 8, normal_color);
+        DrawText(TextFormat("SPR: %u B (%u)",
+                            metrics->drawlist_command_bytes[HARDWARE_DRAWLIST_COMMAND_SPR],
+                            metrics->drawlist_command_calls[HARDWARE_DRAWLIST_COMMAND_SPR]),
+                            panel_x + 7, line_y + line_height, 8, normal_color);
+        DrawText(TextFormat("TILE: %u B (%u)",
+                            metrics->drawlist_command_bytes[HARDWARE_DRAWLIST_COMMAND_TILE],
+                            metrics->drawlist_command_calls[HARDWARE_DRAWLIST_COMMAND_TILE]),
+                            panel_x + 7, line_y + line_height * 2, 8, normal_color);
+        DrawText(TextFormat("RECT: %u B (%u)",
+                            metrics->drawlist_command_bytes[HARDWARE_DRAWLIST_COMMAND_RECT],
+                            metrics->drawlist_command_calls[HARDWARE_DRAWLIST_COMMAND_RECT]),
+                            panel_x + 7, line_y + line_height * 3, 8, normal_color);
+        DrawText(TextFormat("CIRC: %u B (%u)",
+                            metrics->drawlist_command_bytes[HARDWARE_DRAWLIST_COMMAND_CIRCLE],
+                            metrics->drawlist_command_calls[HARDWARE_DRAWLIST_COMMAND_CIRCLE]),
+                            panel_x + 7, line_y + line_height * 4, 8, normal_color);
+        DrawText(TextFormat("TRIS: %u B (%u)",
+                            metrics->drawlist_command_bytes[HARDWARE_DRAWLIST_COMMAND_TRIANGLE],
+                            metrics->drawlist_command_calls[HARDWARE_DRAWLIST_COMMAND_TRIANGLE]),
+                            panel_x + 7, line_y + line_height * 5, 8, normal_color);
+        DrawText(TextFormat("PRINT: %u B (%u)",
+                            metrics->drawlist_command_bytes[HARDWARE_DRAWLIST_COMMAND_PRINT],
+                            metrics->drawlist_command_calls[HARDWARE_DRAWLIST_COMMAND_PRINT]),
+                            panel_x + 7, line_y + line_height * 6, 8, normal_color);
+        DrawText(TextFormat("CLS: %u B (%u)",
+                            metrics->drawlist_command_bytes[HARDWARE_DRAWLIST_COMMAND_CLS],
+                            metrics->drawlist_command_calls[HARDWARE_DRAWLIST_COMMAND_CLS]),
+                            panel_x + 7, line_y + line_height * 7, 8, normal_color);
+        DrawText(TextFormat("CLIP: %u B (%u)",
+                            metrics->drawlist_command_bytes[HARDWARE_DRAWLIST_COMMAND_CLIP],
+                            metrics->drawlist_command_calls[HARDWARE_DRAWLIST_COMMAND_CLIP]),
+                            panel_x + 7, line_y + line_height * 8, 8, normal_color);
+        DrawText(TextFormat("FILLP: %u B (%u)",
+                            metrics->drawlist_command_bytes[HARDWARE_DRAWLIST_COMMAND_FILLP],
+                            metrics->drawlist_command_calls[HARDWARE_DRAWLIST_COMMAND_FILLP]),
+                            panel_x + 7, line_y + line_height * 9, 8, normal_color);
+        DrawText(TextFormat("OTHER: %u B (%u)",
+                            metrics->drawlist_command_bytes[HARDWARE_DRAWLIST_COMMAND_OTHER],
+                            metrics->drawlist_command_calls[HARDWARE_DRAWLIST_COMMAND_OTHER]),
+                            panel_x + 7, line_y + line_height * 10, 8, normal_color);
+
+        DrawText(TextFormat("SD: %u / %u B",
+                            metrics->sd_bytes, metrics->sd_limit),
+                            panel_x + 7, line_y + line_height * 11, 8, normal_color);
+        DrawText(TextFormat("Loads: %u / %u  SD tx: %u / %u",
+                            metrics->sprite_loads,
+                            metrics->sprite_loads_limit,
+                            metrics->sd_transactions,
+                            metrics->sd_transactions_limit),
+                            panel_x + 7, line_y + line_height * 12, 8, normal_color);
+        DrawText(TextFormat("SD rejected: %u",
+                            metrics->sd_rejected_transactions),
+                            panel_x + 7, line_y + line_height * 13, 8,
+                            metrics->sd_rejected_transactions > 0 ? RED : normal_color);
+        DrawText(TextFormat("Sprite rejected: %u",
+                            metrics->sprite_rejected_loads),
+                            panel_x + 7, line_y + line_height * 14, 8,
+                            metrics->sprite_rejected_loads > 0 ? RED : normal_color);
+        DrawText(TextFormat("Draw rejected: %u",
+                            metrics->drawlist_rejected_commands),
+                            panel_x + 7, line_y + line_height * 15, 8,
+                            metrics->drawlist_rejected_commands > 0 ? RED : normal_color);
+
+        /*
+         * Keep the three global status lines together at the end of the
+         * overlay, in the same order used by the public documentation.
+         */
+        DrawText(hardware_constraints_lua_watchdog_enabled()
+        ? TextFormat("Instruções Lua: %u / %u",
+                     metrics->lua_instructions,
+                     metrics->lua_instructions_limit)
+        : "Instruções Lua: OFF",
+        panel_x + 7, line_y + line_height * 16, 8,
+        (hardware_constraints_lua_watchdog_triggered() ||
+        !hardware_constraints_lua_watchdog_enabled()) ? RED : normal_color);
+
+        DrawText(hardware_constraints_lua_watchdog_triggered()
+        ? "Watchdog: TRIPPED"
+        : (hardware_constraints_lua_watchdog_enabled()
+        ? "Watchdog: ON"
+        : "Watchdog: OFF"),
+        panel_x + 7, line_y + line_height * 17, 8, watchdog_color);
+
+        DrawText(hardware_constraints_enabled()
+        ? "Limites: ON"
+        : "Limites: OFF",
+        panel_x + 7, line_y + line_height * 18, 8, limits_color);
     }
     #endif
 
@@ -144,12 +245,14 @@ static int ends_with(const char *str, const char *suffix) {
 
 #if defined(PLATFORM_WEB)
 int main() {
-    SetTraceLogLevel(LOG_WARNING);
-
     lua_api_init();
 
     #if defined(AUTO_LOAD_GAME)
     lua_api_setup_game("/loaded_game");
+    #endif
+
+    #ifndef DEBUG_MODE
+    SetTraceLogLevel(LOG_WARNING);
     #endif
 
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Lupi Emulator");
@@ -209,7 +312,9 @@ int main(int argc, char *argv[]) {
     lua_api_setup_game(game_dir);
 
     // Initialize Raylib window
+    #ifndef DEBUG_MODE
     SetTraceLogLevel(LOG_WARNING);
+    #endif
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Lupi Emulator");
     HideCursor();
     SetTargetFPS(60);
