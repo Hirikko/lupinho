@@ -32,12 +32,22 @@ Você pode ter mais informações sobre os **Limites** nesta Issue: [**LIMITAÇ�
 - ⚡ **60 FPS** — Jogabilidade fluida a 60 quadros por segundo
 - 🔧 **Feito em Raylib** — Construído sobre a leve biblioteca gráfica Raylib
 
-## 🕹️ Player Web (Lupinho Player)
+- 👾 **Favicon Lupi atualizado**
+<img width="428" height="157" alt="image" src="https://github.com/user-attachments/assets/dcb6ea9c-6731-4e51-96dc-d958d7b718cb" />
 
+## 🕹️ Player Web (Lupinho Player)
 O Lupinho agora conta com um player web completo e moderno, projetado para oferecer a melhor experiência possível no navegador:
+<img width="1296" height="1308" alt="image" src="https://github.com/user-attachments/assets/54b5677c-1f0f-4b31-8d6c-2bd4efccd898" />
 
 - **Controle Virtual:** Um controle estilo Super Nintendo na tela, mapeado perfeitamente para as teclas do emulador. Funciona com toque (mobile) e clique (desktop).
 - **Filtros Visuais:** Alterne entre a nitidez dos pixels (Padrão), suavização bilinear (Suave) e a nostalgia das linhas de varredura (CRT).
+
+Padrão:
+<img width="1865" height="1151" alt="image" src="https://github.com/user-attachments/assets/2f27ec42-4783-42e6-bc1d-4db5c4f4a465" />
+
+Suave:
+<img width="1865" height="1153" alt="image" src="https://github.com/user-attachments/assets/73c6e634-8ac0-4cdd-9015-88553aa876dc" />
+
 - **Reinício Instantâneo:** O botão "Reiniciar Jogo" reseta a engine e o script Lua na memória sem apagar o jogo carregado.
 
 
