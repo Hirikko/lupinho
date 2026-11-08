@@ -45,9 +45,6 @@ Três filtros de renderização estão disponíveis no menu:
 ## Entrada de mouse
 <img width="1870" height="1076" alt="image" src="https://github.com/user-attachments/assets/f6abfd34-06eb-478a-a390-a261ba4f3aa4" />
 
-<img src="https://i.imgur.com/mnbi7Hj.gif" alt="Animação" width="100%">
-
-
 Foi adicionada a API:
 ```lua
 ui.mouse()
@@ -108,6 +105,7 @@ Retorna métricas do sistema em tempo real. Os índices agora estão alinhados c
 ## Entrada de texto e Peek
 Foi adicionada a API `ui.readtext()`, que retorna o próximo caractere disponível no buffer de entrada de texto e **consome** um caractere da fila. 
 É ideal para nomes de jogadores, menus, campos de texto, códigos, senhas e telas de configuração.
+<img width="1235" height="782" alt="image" src="https://github.com/user-attachments/assets/beaab26b-1f17-465f-b37c-2b123a57dc76" />
 ```lua
 local char = ui.readtext()
 if char then
@@ -254,6 +252,7 @@ O objetivo é permitir que jogos sejam desenvolvidos e testados respeitando as c
 
 ---
 # Limites monitorados
+<img width="1256" height="737" alt="image" src="https://github.com/user-attachments/assets/768fbbc5-6fcd-4085-9560-4845573f924f" />
 
 Os limites atualmente utilizados pelo diagnóstico são:
 
@@ -474,6 +473,7 @@ Concentra funcionalidades específicas de compatibilidade Lupi, incluindo:
 - `ui.mouse`;
 - `ui.readtext`;
 - caches relacionados a essas funcionalidades.
+
 
 ### `hardware_constraints.c`
 Responsável pelo sistema de métricas e diagnóstico das limitações de hardware.
