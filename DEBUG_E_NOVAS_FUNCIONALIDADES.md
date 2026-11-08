@@ -9,10 +9,12 @@ Isso permite maior compatibilidade com os jogos e scripts atuais do ecossistema 
 ---
 ## Interface do Emulador
 - **Favicon**: O ícone da aba do navegador foi atualizado para refletir a nova identidade visual oficial do projeto Lupi (disponível em `https://lupi.api.br/favicon.ico`).
+<img width="428" height="157" alt="image" src="https://github.com/user-attachments/assets/bd8f9aad-363a-47b1-8e20-f9a5a93f8553" />
 
 ### Controle Virtual SNES
 O player web agora inclui um controle virtual no estilo Super Nintendo, que pode ser ativado pelo botão **CONTROLE: LIGADO/DESLIGADO**. 
 Ele dispara eventos de teclado mapeados para as teclas do Lupinho, garantindo compatibilidade total com os jogos.
+<img width="1268" height="1280" alt="image" src="https://github.com/user-attachments/assets/29555c95-6102-4c64-87fc-5c76bd475bd5" />
 
 | Botão do Controle | Tecla Mapeada |
 |---|---|
@@ -28,14 +30,23 @@ Ele dispara eventos de teclado mapeados para as teclas do Lupinho, garantindo co
 ### Filtros de Tela
 Três filtros de renderização estão disponíveis no menu:
 - **Padrão**: `image-rendering: pixelated` (pixels nítidos, ideal para pixel art).
+<img width="1897" height="1159" alt="image" src="https://github.com/user-attachments/assets/4c62f1af-8c0a-44f5-9598-b57f14a29ab1" />
 - **Suave**: Aplica a suavização bilinear nativa do navegador (efeito semelhante a shaders de suavização como 2xSaI, com custo zero de processamento).
+<img width="1920" height="1115" alt="image" src="https://github.com/user-attachments/assets/16e51feb-bc07-42ac-970f-d49fca363d1e" />
+
 - **CRT**: Aplica um overlay com linhas de varredura e cintilação para simular monitores de tubo antigos.
+<img width="1983" height="1146" alt="image" src="https://github.com/user-attachments/assets/57ff7eaf-3ef7-4690-9a2f-4eb1b3677cf7" />
+
 ### Carregamento e Reinício de Jogos
 - Arraste e solte arquivos `.lupi` diretamente na página.
 - O botão **REINICIAR JOGO** reinicia o jogo atual sem recarregar a página inteira (mantendo o arquivo em memória).
 
 ---
 ## Entrada de mouse
+<img width="1870" height="1076" alt="image" src="https://github.com/user-attachments/assets/f6abfd34-06eb-478a-a390-a261ba4f3aa4" />
+
+<img src="https://i.imgur.com/mnbi7Hj.gif" alt="Animação" width="100%">
+
 
 Foi adicionada a API:
 ```lua
