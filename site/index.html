@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Lupi Player - Console Emulator</title>
-    <link rel="icon" type="image/x-icon" href=https://www.raylib.com/favicon.ico>
+    <title>Emulador do Console Lupi</title>
+    <link rel="icon" type="image/x-icon" href="https://lupi.api.br/favicon.ico">
     <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
     <style>
         :root {
@@ -20,370 +20,59 @@
             --border-radius: 12px;
         }
 
-        * {
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow-x: hidden; }
 
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
+        /* Header Centralizado */
+        header { width: 100%; padding: 1.5rem 0; background: linear-gradient(to bottom, var(--panel-color), var(--bg-color)); text-align: center; border-bottom: 1px solid rgba(255, 255, 255, 0.05); display: flex; justify-content: center; align-items: center; }
+        .logo { font-size: 2rem; font-weight: 800; letter-spacing: 4px; background: linear-gradient(45deg, #725dec, #ff7eb3); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-transform: uppercase; margin: 0; }
 
-        header {
-            width: 100%;
-            padding: 1.5rem 0;
-            background: linear-gradient(to bottom, var(--panel-color), var(--bg-color));
-            text-align: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .logo {
-            font-size: 2rem;
-            font-weight: 800;
-            letter-spacing: 4px;
-            background: linear-gradient(45deg, #725dec, #ff7eb3);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-transform: uppercase;
-            margin: 0;
-        }
-
-        .container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
-            max-width: 1200px;
-            padding: 2rem 1rem;
-            gap: 2rem;
-        }
+        .container { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 1200px; padding: 2rem 1rem; gap: 2rem; }
 
         /* Game Display */
-        .game-area {
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
-        }
+        .game-area { position: relative; display: flex; flex-direction: column; align-items: center; width: 100%; }
+        .game-container { position: relative; background-color: #000; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 20px rgba(114, 93, 236, 0.1); border-radius: 4px; overflow: hidden; border: 4px solid #2a2a35; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); width: var(--container-width, 480px); height: var(--container-height, 270px); }
+        .scaling-wrapper { position: absolute; top: 0; left: 0; width: var(--game-width); height: var(--game-height); transform-origin: top left; transform: scale(var(--current-zoom, 1)); }
+        @supports (zoom: 1) { .scaling-wrapper { zoom: var(--current-zoom, 1); transform: none; } }
+        #game-frame { border: none; width: 100%; height: 100%; display: block; }
 
-        .game-container {
-            position: relative;
-            background-color: #000;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6),
-                        0 0 20px rgba(114, 93, 236, 0.1);
-            border-radius: 4px;
-            overflow: hidden;
-            border: 4px solid #2a2a35;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        /* Filtros de Imagem */
+        .filter-pixelated { image-rendering: pixelated; image-rendering: crisp-edges; }
+        .filter-smooth { image-rendering: auto; } /* Suavização Bilinear nativa */
 
-            /* Fixed container size updated by JS */
-            width: var(--container-width, 480px);
-            height: var(--container-height, 270px);
-        }
-
-        .scaling-wrapper {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: var(--game-width);
-            height: var(--game-height);
-            transform-origin: top left;
-
-            /* The 'zoom' property is non-standard and causes double-scaling in Chrome
-               if 'transform: scale' is also present.
-               We will use 'transform: scale' as it is the standard and more performant. */
-            transform: scale(var(--current-zoom, 1));
-        }
-
-        /* If you specifically want to use the 'zoom' property in browsers that support it: */
-        @supports (zoom: 1) {
-            .scaling-wrapper {
-                /* In browsers that support zoom, we use zoom and disable transform to avoid double scaling */
-                zoom: var(--current-zoom, 1);
-                transform: none;
-            }
-        }
-
-        #game-frame {
-            border: none;
-            width: 100%;
-            height: 100%;
-            display: block;
-            image-rendering: pixelated;
-            image-rendering: crisp-edges;
-        }
-
-        /* CRT Filter Effect */
-        .crt-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 10;
-            display: none;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
-                        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            background-size: 100% 4px, 3px 100%;
-        }
-
-        .crt-overlay.active {
-            display: block;
-        }
-
-        .crt-overlay::after {
-            content: " ";
-            display: block;
-            position: absolute;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            right: 0;
-            background: rgba(18, 16, 16, 0.1);
-            opacity: 0;
-            z-index: 11;
-            pointer-events: none;
-            animation: flicker 0.15s infinite;
-        }
-
-        @keyframes flicker {
-            0% { opacity: 0.27861; }
-            5% { opacity: 0.34769; }
-            10% { opacity: 0.23604; }
-            15% { opacity: 0.90626; }
-            20% { opacity: 0.18128; }
-            25% { opacity: 0.83891; }
-            30% { opacity: 0.65583; }
-            35% { opacity: 0.57807; }
-            40% { opacity: 0.26559; }
-            45% { opacity: 0.84693; }
-            50% { opacity: 0.96019; }
-            55% { opacity: 0.08523; }
-            60% { opacity: 0.71056; }
-            65% { opacity: 0.73437; }
-            70% { opacity: 0.8523; }
-            75% { opacity: 0.14977; }
-            80% { opacity: 0.44219; }
-            85% { opacity: 0.5823; }
-            90% { opacity: 0.61035; }
-            95% { opacity: 0.67933; }
-            100% { opacity: 0.89341; }
-        }
+        /* CRT Filter */
+        .crt-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; display: none; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); background-size: 100% 4px, 3px 100%; }
+        .crt-overlay.active { display: block; }
+        .crt-overlay::after { content: " "; position: absolute; top: 0; left: 0; bottom: 0; right: 0; background: rgba(18, 16, 16, 0.1); opacity: 0; z-index: 11; pointer-events: none; animation: flicker 0.15s infinite; }
+        @keyframes flicker { 0% { opacity: 0.27861; } 5% { opacity: 0.34769; } 10% { opacity: 0.23604; } 15% { opacity: 0.90626; } 20% { opacity: 0.18128; } 25% { opacity: 0.83891; } 30% { opacity: 0.65583; } 35% { opacity: 0.57807; } 40% { opacity: 0.26559; } 45% { opacity: 0.84693; } 50% { opacity: 0.96019; } 55% { opacity: 0.08523; } 60% { opacity: 0.71056; } 65% { opacity: 0.73437; } 70% { opacity: 0.8523; } 75% { opacity: 0.14977; } 80% { opacity: 0.44219; } 85% { opacity: 0.5823; } 90% { opacity: 0.61035; } 95% { opacity: 0.67933; } 100% { opacity: 0.89341; } }
 
         /* Controls Panel */
-        .controls-panel {
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-            max-width: 800px;
-            background-color: var(--panel-color);
-            padding: 1.5rem;
-            border-radius: var(--border-radius);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            gap: 1.5rem;
-        }
-
-        .control-row {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            justify-content: space-between;
-            gap: 1rem;
-        }
-
-        .control-group {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .label {
-            font-size: 0.8rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            color: #7c7c8a;
-            letter-spacing: 1px;
-        }
-
-        .btn-toggle-group {
-            display: flex;
-            background-color: #0f0f12;
-            padding: 4px;
-            border-radius: 8px;
-        }
-
-        button {
-            background: transparent;
-            color: #a0a0b0;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-
-        button:hover {
-            color: #fff;
-            background-color: rgba(255, 255, 255, 0.05);
-        }
-
-        button.active {
-            background-color: var(--accent-color);
-            color: white;
-            box-shadow: 0 4px 12px rgba(114, 93, 236, 0.3);
-        }
-
-        button.action {
-            background-color: #2d2d3d;
-            color: white;
-            padding: 0.75rem 1.5rem;
-        }
-
-        button.action:hover {
-            background-color: #3d3d4d;
-        }
-
-        button.primary {
-            background-color: var(--accent-color);
-            color: white;
-        }
-
-        button.primary:hover {
-            background-color: var(--accent-hover);
-        }
-
-        /* Virtual Gamepad */
-        .virtual-gamepad {
-            display: none;
-            width: 100%;
-            justify-content: space-between;
-            margin-top: 2rem;
-            user-select: none;
-        }
-
-        @media (max-width: 768px) {
-            .virtual-gamepad {
-                display: flex;
-            }
-        }
-
-        .dpad {
-            display: grid;
-            grid-template-columns: repeat(3, 60px);
-            grid-template-rows: repeat(3, 60px);
-            gap: 5px;
-        }
-
-        .action-buttons {
-            display: grid;
-            grid-template-columns: repeat(2, 60px);
-            grid-template-rows: repeat(2, 60px);
-            gap: 15px;
-            transform: rotate(-15deg);
-        }
-
-        .pad-btn {
-            background-color: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.05);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: 1.2rem;
-            touch-action: manipulation;
-        }
-
-        .pad-btn:active {
-            background-color: var(--accent-color);
-            transform: scale(0.95);
-        }
-
-        .pad-up { grid-area: 1 / 2; border-radius: 12px 12px 4px 4px; }
-        .pad-down { grid-area: 3 / 2; border-radius: 4px 4px 12px 12px; }
-        .pad-left { grid-area: 2 / 1; border-radius: 12px 4px 4px 12px; }
-        .pad-right { grid-area: 2 / 3; border-radius: 4px 12px 12px 4px; }
-
-        .btn-z { grid-area: 2 / 1; background-color: rgba(114, 93, 236, 0.3); }
-        .btn-x { grid-area: 1 / 2; background-color: rgba(239, 68, 68, 0.3); }
+        .controls-panel { display: flex; flex-direction: column; width: 100%; max-width: 850px; background-color: var(--panel-color); padding: 1.5rem; border-radius: var(--border-radius); box-shadow: 0 10px 30px rgba(0,0,0,0.3); gap: 1.5rem; margin: 0 auto; }
+        .control-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 1rem; }
+        .control-group { display: flex; align-items: center; gap: 0.75rem; }
+        .label { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: #7c7c8a; letter-spacing: 1px; }
+        .btn-toggle-group { display: flex; background-color: #0f0f12; padding: 4px; border-radius: 8px; }
+        button { background: transparent; color: #a0a0b0; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 600; transition: all 0.2s; }
+        button:hover { color: #fff; background-color: rgba(255, 255, 255, 0.05); }
+        button.active { background-color: var(--accent-color); color: white; box-shadow: 0 4px 12px rgba(114, 93, 236, 0.3); }
+        button.action { background-color: #2d2d3d; color: white; padding: 0.75rem 1.5rem; }
+        button.action:hover { background-color: #3d3d4d; }
+        button.primary { background-color: var(--accent-color); color: white; }
+        button.primary:hover { background-color: var(--accent-hover); }
+        button.danger { background-color: var(--danger-color); color: white; }
+        button.danger:hover { background-color: #f87171; }
 
         /* Instructions */
-        .instructions {
-            width: 100%;
-            max-width: 800px;
-            background-color: rgba(255, 255, 255, 0.02);
-            border-left: 4px solid var(--accent-color);
-            padding: 1.5rem;
-            border-radius: 4px;
-        }
+        .instructions { width: 100%; max-width: 850px; background-color: rgba(255, 255, 255, 0.02); border-left: 4px solid var(--accent-color); padding: 1.5rem; border-radius: 4px; margin: 0 auto; }
+        .instructions h3 { margin-top: 0; font-size: 1rem; color: var(--accent-color); text-transform: uppercase; text-align: center; }
+        .key-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; font-size: 0.9rem; max-width: 600px; margin: 0 auto; }
+        .key-item { display: flex; align-items: center; gap: 0.5rem; }
+        kbd { background-color: #2d2d3d; border-bottom: 3px solid #1a1a24; border-radius: 4px; padding: 2px 8px; font-family: monospace; color: #fff; min-width: 30px; text-align: center; }
 
-        .instructions h3 {
-            margin-top: 0;
-            font-size: 1rem;
-            color: var(--accent-color);
-            text-transform: uppercase;
-        }
-
-        .key-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            font-size: 0.9rem;
-        }
-
-        .key-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        kbd {
-            background-color: #2d2d3d;
-            border-bottom: 3px solid #1a1a24;
-            border-radius: 4px;
-            padding: 2px 8px;
-            font-family: monospace;
-            color: #fff;
-            min-width: 30px;
-            text-align: center;
-        }
-
-        /* Footer */
-        footer {
-            margin-top: auto;
-            padding: 2rem;
-            color: #4a4a5a;
-            font-size: 0.8rem;
-            text-align: center;
-        }
-
-        .file-picker-panel {
-            display: flex; flex-direction: column; align-items: center;
-            justify-content: center; width: 100%; max-width: 800px;
-            background-color: var(--panel-color); border-radius: var(--border-radius);
-            padding: 3rem 2rem; gap: 1.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        }
+        /* File Picker */
+        .file-picker-panel { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; max-width: 800px; background-color: var(--panel-color); border-radius: var(--border-radius); padding: 3rem 2rem; gap: 1.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
         .hidden { display: none !important; }
-        .drop-zone {
-            width: 100%; max-width: 480px; border: 2px dashed rgba(114,93,236,0.5);
-            border-radius: var(--border-radius); padding: 3rem 2rem;
-            text-align: center; color: #7c7c8a; cursor: pointer;
-            transition: border-color 0.2s, background-color 0.2s;
-        }
+        .drop-zone { width: 100%; max-width: 480px; border: 2px dashed rgba(114,93,236,0.5); border-radius: var(--border-radius); padding: 3rem 2rem; text-align: center; color: #7c7c8a; cursor: pointer; transition: border-color 0.2s, background-color 0.2s; }
         .drop-zone.drag-over { border-color: var(--accent-color); background-color: rgba(114,93,236,0.08); color: var(--text-color); }
         .drop-zone-icon { font-size: 3rem; margin-bottom: 1rem; display: block; }
         .drop-zone p { margin: 0.5rem 0; font-size: 0.95rem; }
@@ -392,48 +81,159 @@
         .load-status { font-size: 0.85rem; color: #7c7c8a; min-height: 1.2em; text-align: center; }
         .load-status.error { color: var(--danger-color); }
         .load-status.success { color: var(--success-color); }
-        .btn-load-game { background-color: #2d2d3d; color: white; padding: 0.75rem 1.5rem; }
+        .btn-load-game { background-color: #2d2d3d; color: white; padding: 0.75rem 1.5rem; border-radius: 6px; }
         .btn-load-game:hover { background-color: var(--accent-color); }
 
-        /* Fullscreen handling */
-        #player-container:fullscreen {
-            width: 100vw !important;
-            height: 100vh !important;
-            border: none;
-            border-radius: 0;
-            display: grid !important;
-            place-items: center !important;
-            background-color: #000 !important;
-            margin: 0 !important;
-            padding: 0 !important;
+        /* Fullscreen */
+        #player-container:fullscreen { width: 100vw !important; height: 100vh !important; border: none; border-radius: 0; display: grid !important; place-items: center !important; background-color: #000 !important; margin: 0 !important; padding: 0 !important; }
+        #player-container:fullscreen .scaling-wrapper { position: relative !important; top: auto !important; left: auto !important; margin: 0 !important; width: 480px !important; height: 270px !important; transform: scale(3) !important; transform-origin: center center !important; }
+        @supports (zoom: 1) { #player-container:fullscreen .scaling-wrapper { zoom: 3 !important; transform: none !important; top: 0 !important; left: 0 !important; } }
+
+        /* =========================================
+           SNES CONTROLLER STYLES
+           ========================================= */
+        @font-face {
+            font-family: "snesitalic";
+            src: url("https://codepen-font-hoster.s3.amazonaws.com/fonts/snesitalic-vmapz-webfont.woff2") format("woff2"),
+                 url("https://codepen-font-hoster.s3.amazonaws.com/fonts/snesitalic-vmapz-webfont.woff") format("woff");
+            font-weight: normal;
+            font-style: normal;
         }
 
-        #player-container:fullscreen .scaling-wrapper {
-            position: relative !important;
-            top: auto !important;
-            left: auto !important;
-            margin: 0 !important;
-            width: 480px !important;
-            height: 270px !important;
-            transform: scale(3) !important;
-            transform-origin: center center !important;
+        #snes-controller-wrapper {
+            display: flex; /* Mantemos flex para o conteúdo não colapsar */
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            margin-top: 0;
+            margin-bottom: 0;
+            width: 100%;
+            justify-content: center;
+            transform: scale(0.75);
+            transform-origin: top center;
+            transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease, margin 0.5s ease;
+        }
+        #snes-controller-wrapper.active {
+            max-height: 600px; /* Altura suficiente para o controle */
+            opacity: 1;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
         }
 
-        /* Chrome fix for centered zoomed element */
-        @supports (zoom: 1) {
-            #player-container:fullscreen .scaling-wrapper {
-                zoom: 3 !important;
-                transform: none !important;
-                /* Reset possible offsets */
-                top: 0 !important;
-                left: 0 !important;
-            }
+        .controls-panel {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 850px;
+            background-color: var(--panel-color);
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            gap: 1.5rem;
+            margin: 0 auto;
+            transition: margin-top 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
+        /* Quando o controle está ativo, empurra o painel para baixo */
+        .controls-panel.shifted {
+            margin-top: 3rem; /* Ajuste conforme necessário */
+        }
+
+        .controller {
+            user-select: none;
+            filter: none; /* Remove brilho branco */
+        }
+
+        .controller .chord { background: black; position: absolute; height: 5em; margin-left: -0.5em; left: 50%; width: 1em; z-index: -1; }
+        .controller .chord:before { background: radial-gradient(#fff, transparent, transparent); content: ""; position: absolute; right: 12.5%; top: 12.5%; height: 75%; width: 50%; }
+
+        .controller-body {
+            background: #e2ecf6;
+            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.6); /* Sombra escura suave */
+            border-radius: 15em;
+            margin: 5em auto;
+            position: relative;
+            width: 40em;
+            height: 15em;
+            z-index: 2;
+        }
+
+        /* Triggers (L e R) */
+        .triggers { display: flex; flex-direction: row; justify-content: space-between; position: absolute; margin: -0.25em 2.5em; z-index: 1; width: 35em; transform: translateY(-15px); }
+        .trigger {
+            background: #e2ecf6;
+            height: 2.5em;
+            width: 10em;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            padding-bottom: 0.2em;
+            font-family: snesitalic, sans-serif;
+            color: #725dec;
+            font-size: 1.5em;
+            cursor: pointer;
+            border: 2px solid #725dec;
+            border-bottom: none;
+        }
+        .trigger.left { border-radius: 80% 10px 0 0; box-shadow: inset 2px 2px 10px rgba(0, 0, 0, 0.1), -2px -2px 5px rgba(0,0,0,0.2); }
+        .trigger.right { border-radius: 10px 80% 0 0; box-shadow: inset 2px 2px 10px rgba(0, 0, 0, 0.1), 2px -2px 5px rgba(0,0,0,0.2); }
+        .trigger:active, .trigger.pressed { transform: translateY(2px); box-shadow: inset 0px 0px 8px rgba(0,0,0,0.3); background: #d1dce8; border-color: #5a4ac4; border-bottom: none; }
+        .triggers:before { border-radius: 100% 95% 0 0; content: ""; position: absolute; background: #e2ecf6; height: 1.75em; bottom: 0; left: 5%; width: 90%; z-index: 2; }
+
+        .dpad-circle { background: rgba(0, 0, 0, 0.04); box-shadow: inset 1px 1px 3px rgba(215, 215, 215, 0.5), inset -1px -1px 1px #d7d7d7; border-radius: 50%; position: absolute; left: 2.5em; top: 4.25em; height: 8.5em; width: 8.5em; z-index: 3; }
+        .dpad-body { filter: drop-shadow(2px 4px rgba(51, 51, 51, 0.9)); position: relative; display: flex; justify-content: center; align-items: center; width: 100%; height: 100%; }
+        .dpad { background: #4d616c; border-radius: 5px; height: 6em; position: absolute; left: 3.25em; top: 1.25em; width: 2em; pointer-events: none; }
+        .dpad.verticle { background: linear-gradient(145deg, #8d8c95, #4d616c, #4d616c); }
+        .dpad.horizontal { background: linear-gradient(45deg, #8d8c95, #4d616c, #4d616c); }
+        .dpad:before { filter: drop-shadow(-1px 0px rgba(255, 255, 255, 0.2)); content: ""; border-top: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 20px solid #35434b; border-left: 10px solid transparent; position: absolute; left: calc(50% - 10px); top: -5px; }
+        .dpad:after { content: ""; filter: drop-shadow(1px 0px rgba(255, 255, 255, 0.2)); border-top: 20px solid #35434b; border-right: 10px solid transparent; border-bottom: 20px solid transparent; border-left: 10px solid transparent; position: absolute; left: calc(50% - 10px); bottom: -15px; }
+        .dpad.horizontal { transform: rotate(90deg); }
+        .center { background: rgba(0, 0, 0, 0.3); border-radius: 50%; position: absolute; left: calc(50% - 0.75em); top: calc(50% - 0.75em); height: 1.5em; width: 1.5em; pointer-events: none; }
+
+        .dpad.verticle.pressed { transform: scale(0.95); }
+        .dpad.horizontal.pressed { transform: rotate(90deg) scale(0.95); }
+
+        /* D-Pad Hit Zones */
+        .dpad-hit { position: absolute; cursor: pointer; z-index: 10; }
+        .dpad-hit.up { top: 0; left: 33.3%; width: 33.3%; height: 33.3%; }
+        .dpad-hit.down { bottom: 0; left: 33.3%; width: 33.3%; height: 33.3%; }
+        .dpad-hit.left { top: 33.3%; left: 0; width: 33.3%; height: 33.3%; }
+        .dpad-hit.right { top: 33.3%; right: 0; width: 33.3%; height: 33.3%; }
+
+        .middle-container { position: absolute; left: 50%; top: 2.5em; margin-left: -6em; width: 12em; height: 11em; z-index: 3; display: flex;flex-direction:column; align-items: center; justify-content: space-between; }
+        .main-text { font-family: snesitalic, sans-serif; letter-spacing: 6px; color: #725dec; font-size: 3.6em; line-height: 1; text-align: center; }
+        .secondary-text { font-family: snesitalic, sans-serif; background: transparent; color: #725dec; text-align: center; letter-spacing: 12px; padding: 0; font-size: 2.4em; line-height: 1; margin-top: 0.5em; }
+
+        .control-buttons { display: flex; flex-direction: row; height: 4em; width: 8em; justify-content: center; position: relative; }        .button { background: radial-gradient(#999999, #4d616c, #4d616c, #4d616c); border: 3px solid rgba(255, 255, 255, 0.7); box-shadow: inset 0px 0px 3px #000; border-radius: 1em; height: 0.75em; transform: rotate(-35deg); width: 3em; cursor: pointer; }
+        .button:active, .button.pressed { box-shadow: inset 0px 0px 5px #000; transform: rotate(-35deg) translateY(2px); }
+        .button.select { margin-right: 1.5em; position: relative; }
+        .button.select:after { color: #91a4bb; font-family: snesitalic, sans-serif; transform: rotate(35deg); content: "SELECIONAR"; width: 3em; letter-spacing: 1.5px; position: absolute; top: 2.2em; left: -1.2em; font-size: 1.1em; }
+        .button.start:after { color: #91a4bb; font-family: snesitalic, sans-serif; transform: rotate(35deg); content: "INICIAR"; width: 3em; letter-spacing: 1.5px; position: absolute; top: 2.2em; left: -1.2em; font-size: 1.1em; }
+
+        .button-circle { background: #c4d2df; box-shadow: inset 1px 1px 3px rgba(215, 215, 215, 0.5), inset -1px -1px 1px #d7d7d7; border-radius: 50%; display: flex; align-items: center; justify-content: center; align-content: center; flex-wrap: wrap; flex-direction: row; position: absolute; right: 0.2em; top: 1.1em; height: 15em; width: 15em; z-index: 3; }
+
+        .buttons { background: #e2ecf6; display: flex; justify-content: space-between; border-radius: 1.8em; margin: 0; transform: rotate(-30deg); width: 9em; height: 3em; }
+        .buttons .button { border-radius: 1.5em; margin: 0.3em; height: 3em; transition: 0.1s; width: 3em; }
+        .buttons .button:active, .buttons .button.pressed { transition: 0.1s; box-shadow: 1px 0px rgba(54, 62, 109, 0.5), -1px -1px 1px rgba(54, 62, 109, 0.5) !important; transform: translateY(2px); }
+
+        .buttons.light { margin-left: -2em; margin-bottom: 2em; }
+        .buttons.light .button { background: #d2d7fd; box-shadow: 1px 2px #363e6d, -2px -2px 2px rgba(54, 62, 109, 0.5); position: relative; }
+        .buttons.light .button::after { background: linear-gradient(to bottom, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0)); border-radius: 80%; content: ""; height: 0.75em; width: 1.5em; left: 0.65em; top: 0.4em; position: absolute; z-index: 3; }
+        .buttons.light .button.y:before { content: "Y"; color: #e2ecf6; font-family: snesitalic, sans-serif; font-size: 1.5em; position: absolute; left: -0.95em; top: 0.5em; transform: rotate(25deg); }
+        .buttons.light .button.x:before { content: "X"; color: #e2ecf6; font-family: snesitalic, sans-serif; font-size: 1.5em; position: absolute; right: -0.75em; top: 0.75em; transform: rotate(25deg); }
+
+        .buttons.dark { margin-left: 2em; }
+        .buttons.dark .button { background: #623dbd; box-shadow: 1px 2px #110f3a, -2px -2px 2px rgba(17, 15, 58, 0.5); position: relative; }
+        .buttons.dark .button::after { background: linear-gradient(to top, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0)); border-radius: 80%; content: ""; height: 0.75em; width: 1.5em; right: 0.65em; bottom: 0.4em; position: absolute; z-index: 3; }
+        .buttons.dark .button.b:before { content: "B"; color: #e2ecf6; font-family: snesitalic, sans-serif; font-size: 1.5em; position: absolute; left: -0.95em; top: 0.5em; transform: rotate(25deg); }
+        .buttons.dark .button.a:before { content: "A"; color: #e2ecf6; font-family: snesitalic, sans-serif; font-size: 1.5em; position: absolute; right: -0.75em; top: 0.75em; transform: rotate(25deg); }
+
+        .controller-body::before { background: #e2ecf6; border-radius: 8.6em; content: ""; position: absolute; left: -1em; height: 17em; width: 17em; z-index: -1; }
+        .controller-body::after { background: #e2ecf6; border-radius: 8.6em; content: ""; position: absolute; right: -1em; height: 17em; width: 17em; z-index: -1; }
     </style>
 </head>
 <body>
     <header>
-        <h1 class="logo">Lupi Console</h1>
+        <h1 class="logo">LUPI CONSOLE</h1>
     </header>
 
     <div class="container">
@@ -442,9 +242,7 @@
                 <span class="drop-zone-icon">&#128190;</span>
                 <p>Arraste um arquivo <strong>.lupi</strong> aqui</p>
                 <p>ou</p>
-                <button class="action primary" onclick="document.getElementById('lupi-file-input').click()">
-                    Selecionar Arquivo
-                </button>
+                <button class="action primary" onclick="document.getElementById('lupi-file-input').click()">Selecionar Arquivo</button>
                 <p class="hint">.lupi &mdash; cartucho de jogo Lupi</p>
             </div>
             <div class="load-status" id="load-status"></div>
@@ -458,22 +256,53 @@
                     <iframe id="game-frame" src="./dist/game.html" scrolling="no"></iframe>
                 </div>
             </div>
+        </div>
 
-            <div class="virtual-gamepad">
-                <div class="dpad">
-                    <div class="pad-btn pad-up" data-key="ArrowUp">↑</div>
-                    <div class="pad-btn pad-left" data-key="ArrowLeft">←</div>
-                    <div class="pad-btn pad-right" data-key="ArrowRight">→</div>
-                    <div class="pad-btn pad-down" data-key="ArrowDown">↓</div>
-                </div>
-                <div class="action-buttons">
-                    <div class="pad-btn btn-z" data-key="z">Z</div>
-                    <div class="pad-btn btn-x" data-key="x">X</div>
+        <!-- CONTROLE SNES (Movido para cima do painel) -->
+        <div id="snes-controller-wrapper">
+            <div class="controller">
+                <div class="chord"></div>
+                <div class="controller-body">
+                    <div class="triggers" style="height: 84px;margin-top: -1.26em;">
+                        <div class="trigger left" data-key="g">L</div>
+                        <div class="trigger right" data-key="h">R</div>
+                    </div>
+                    <div class="dpad-circle">
+                        <div class="dpad-body">
+                            <div class="dpad verticle"></div>
+                            <div class="dpad horizontal"></div>
+                            <div class="center"></div>
+
+                            <!-- Zonas de clique do D-Pad -->
+                            <div class="dpad-hit up" data-key="w"></div>
+                            <div class="dpad-hit down" data-key="s"></div>
+                            <div class="dpad-hit left" data-key="a"></div>
+                            <div class="dpad-hit right" data-key="d"></div>
+                        </div>
+                    </div>
+                    <div class="middle-container" style="margin-right: 0px;padding-left: 0px;padding-right: 30px;">
+                        <div class="main-text" style="padding-left: 0px;padding-right: 11px;padding-top: 0px;padding-bottom: 0px;border-top-width: 0px;border-top-style: solid;margin-top: -12px;">LUPI</div>
+                        <div class="control-buttons" style="padding-right: 0px;border-right-width: 0px;border-right-style: solid;border-top-width: 0px;border-top-style: solid;margin-top: 26px;padding-left: 0px;margin-right: 27px;">
+                            <div class="button select" data-key="Shift"></div>
+                            <div class="button start" data-key="Enter"></div>
+                        </div>
+                        <div class="secondary-text" style="padding-left: 0px;padding-right: 3px;">CONSOLE</div>
+                    </div>
+                    <div class="button-circle">
+                        <div class="buttons light">
+                            <div class="button y" data-key="l"></div>
+                            <div class="button x" data-key="m"></div>
+                        </div>
+                        <div class="buttons dark">
+                            <div class="button b" data-key="k"></div>
+                            <div class="button a" data-key="j"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="controls-panel hidden">
+        <div class="controls-panel hidden" id="controls-panel">
             <div class="control-row">
                 <div class="control-group">
                     <span class="label">Resolução:</span>
@@ -484,29 +313,30 @@
                         <button onclick="changeScale('fit')" id="scale-fit">Auto</button>
                     </div>
                 </div>
-
-                <div class="control-group">
-                    <span class="label">Filtros:</span>
-                    <button class="action" onclick="toggleCRT()" id="crt-btn">CRT: OFF</button>
+                    <div class="control-group">
+                        <span class="label">Filtros:</span>
+                        <div class="btn-toggle-group" id="filter-group">
+                            <button onclick="changeFilter('pixelated')" id="filter-pixelated">Padrão</button>
+                            <button onclick="changeFilter('smooth')" id="filter-smooth">Suave</button>
+                            <button onclick="changeFilter('crt')" id="filter-crt">CRT</button>
+                    </div>
                 </div>
-
-                <div class="control-group">
-                    <button class="action primary" onclick="toggleFullscreen()">TELA CHEIA</button>
-                </div>
-
-                <div class="control-group">
+            </div>
+                <div class="control-row" style="justify-content: center; gap: 15px; margin-top: 10px;">
+                    <button class="action" onclick="toggleGamepad()" id="gamepad-btn">CONTROLE: DESLIGADO</button>
+                    <button class="action danger" id="btn-restart" onclick="restartGame()" style="display: none;">REINICIAR JOGO</button>
                     <button class="btn-load-game" onclick="showFilePicker()">Carregar Jogo</button>
-                </div>
+                    <button class="action primary" onclick="toggleFullscreen()">TELA CHEIA</button>
             </div>
         </div>
 
         <div class="instructions">
-            <h3>Controles</h3>
+            <h3>Instruções</h3>
             <div class="key-grid">
-                <div class="key-item"><kbd>←</kbd><kbd>↑</kbd><kbd>→</kbd><kbd>↓</kbd> <span>Movimentação</span></div>
-                <div class="key-item"><kbd>Z</kbd> <span>Botão A / Pulo</span></div>
-                <div class="key-item"><kbd>X</kbd> <span>Botão B / Ataque</span></div>
-                <div class="key-item"><kbd>Q</kbd><kbd>E</kbd> <span>Extras</span></div>
+                <div class="key-item"><kbd>←</kbd><kbd>↑</kbd><kbd>→</kbd><kbd>↓</kbd> <span>Movimentação (WASD)</span></div>
+                <div class="key-item"><kbd>J</kbd> <span>A / Pulo</span></div>
+                <div class="key-item"><kbd>K</kbd> <span>B / Ataque</span></div>
+                <div class="key-item"><kbd>L</kbd><kbd>M</kbd> <span>Y / X</span></div>
             </div>
         </div>
     </div>
@@ -524,7 +354,8 @@
         const crtOverlay = document.getElementById('crt-overlay');
 
         let currentScale = localStorage.getItem('lupi_scale') || '2';
-        let crtEnabled = localStorage.getItem('lupi_crt') === 'true';
+        let currentFilter = localStorage.getItem('lupi_filter') || 'pixelated';
+        let currentGameData = null;
 
         function getModule() {
             try {
@@ -543,7 +374,7 @@
         function hideFilePicker() {
             filePicker.classList.add('hidden');
             document.querySelector('.game-area').classList.remove('hidden');
-            document.querySelector('.controls-panel').classList.remove('hidden');
+            document.getElementById('controls-panel').classList.remove('hidden');
         }
         function setLoadStatus(msg, type) {
             loadStatus.textContent = msg;
@@ -586,34 +417,76 @@
             let arrayBuffer;
             try { arrayBuffer = await file.arrayBuffer(); }
             catch (e) { setLoadStatus('Erro ao ler arquivo: ' + e.message, 'error'); return; }
+
             setLoadStatus('Descompactando...');
             let unzipped;
             try { unzipped = fflate.unzipSync(new Uint8Array(arrayBuffer)); }
             catch (e) { setLoadStatus('Arquivo .lupi inválido: ' + e.message, 'error'); return; }
+
             if (!unzipped['game.lua']) {
                 setLoadStatus('Arquivo .lupi inválido: game.lua não encontrado.', 'error'); return;
             }
+
+            currentGameData = unzipped;
+
             setLoadStatus('Escrevendo no sistema de arquivos...');
             try { writeZipToFS(M.FS, unzipped); }
             catch (e) { setLoadStatus('Erro ao escrever no FS: ' + e.message, 'error'); return; }
+
             setLoadStatus('Iniciando jogo...');
             try { M.ccall('lupi_load_game', null, ['string'], ['loaded_game']); }
             catch (e) { setLoadStatus('Erro ao iniciar o jogo: ' + e.message, 'error'); return; }
+
             setLoadStatus('Jogo carregado!', 'success');
+            document.getElementById('btn-restart').style.display = 'inline-block';
             hideFilePicker();
         }
 
+        function restartGame() {
+            if (!currentGameData) return;
+            const M = getModule();
+            if (!M) return;
+
+            setLoadStatus('Reiniciando...');
+            try {
+                writeZipToFS(M.FS, currentGameData);
+                M.ccall('lupi_load_game', null, ['string'], ['loaded_game']);
+                setLoadStatus('Jogo reiniciado!', 'success');
+            } catch (e) {
+                setLoadStatus('Erro ao reiniciar: ' + e.message, 'error');
+            }
+        }
+
+        function toggleGamepad() {
+            const wrapper = document.getElementById('snes-controller-wrapper');
+            const panel = document.getElementById('controls-panel');
+            const btn = document.getElementById('gamepad-btn');
+
+            wrapper.classList.toggle('active');
+            panel.classList.toggle('shifted'); // Adiciona/remove a classe que empurra o painel
+
+            if (wrapper.classList.contains('active')) {
+                btn.textContent = 'CONTROLE: LIGADO';
+                btn.classList.add('active');
+            } else {
+                btn.textContent = 'CONTROLE: DESLIGADO';
+                btn.classList.remove('active');
+            }
+        }
+
         function init() {
-            // Apply saved settings
             changeScale(currentScale);
-            if (crtEnabled) {
-                crtOverlay.classList.add('active');
-                document.getElementById('crt-btn').textContent = 'CRT: ON';
-                document.getElementById('crt-btn').style.color = 'var(--success-color)';
+            changeFilter(currentFilter);
+
+            // Auto-open gamepad on mobile
+            if (window.innerWidth <= 768) {
+                document.getElementById('snes-controller-wrapper').classList.add('active');
+                document.getElementById('controls-panel').classList.add('shifted'); // Adicione esta linha
+                document.getElementById('gamepad-btn').textContent = 'CONTROLE: LIGADO';
+                document.getElementById('gamepad-btn').classList.add('active');
             }
 
-            // Virtual Gamepad Handlers
-            setupVirtualGamepad();
+            setupSnesController();
 
             fileInput.addEventListener('change', (e) => {
                 const file = e.target.files[0];
@@ -629,7 +502,6 @@
                 else setLoadStatus('Selecione um arquivo .lupi válido.', 'error');
             });
 
-            // Poll for Module readiness
             const readyInterval = setInterval(() => {
                 if (getModule()) {
                     clearInterval(readyInterval);
@@ -641,114 +513,177 @@
         function changeScale(scale) {
             currentScale = scale;
             localStorage.setItem('lupi_scale', scale);
-
-            // Update buttons
             document.querySelectorAll('.btn-toggle-group button').forEach(b => b.classList.remove('active'));
             document.getElementById('scale-' + scale).classList.add('active');
-
-            if (scale === 'fit') {
-                updateFitSize();
-            } else {
-                const s = parseFloat(scale);
-                applyZoom(s);
-            }
+            if (scale === 'fit') { updateFitSize(); }
+            else { applyZoom(parseFloat(scale)); }
         }
 
         function applyZoom(s) {
-            // Apply zoom property and transform fallback to the wrapper
             scalingWrapper.style.setProperty('--current-zoom', s);
-
-            // Size the container to match the scaled content
             container.style.setProperty('--container-width', (BASE_WIDTH * s) + 'px');
             container.style.setProperty('--container-height', (BASE_HEIGHT * s) + 'px');
         }
 
         function updateFitSize() {
             if (currentScale !== 'fit') return;
-
             const padding = 40;
             const maxWidth = window.innerWidth - padding;
-            const maxHeight = window.innerHeight - 350; // Space for controls
-
-            let zoomW = maxWidth / BASE_WIDTH;
-            let zoomH = maxHeight / BASE_HEIGHT;
-            let finalZoom = Math.min(zoomW, zoomH);
-
-            applyZoom(finalZoom);
+            const maxHeight = window.innerHeight - 350;
+            const zoomW = maxWidth / BASE_WIDTH;
+            const zoomH = maxHeight / BASE_HEIGHT;
+            applyZoom(Math.min(zoomW, zoomH));
         }
 
-        function toggleCRT() {
-            crtEnabled = !crtEnabled;
-            localStorage.setItem('lupi_crt', crtEnabled);
+        function changeFilter(filter) {
+            currentFilter = filter;
+            localStorage.setItem('lupi_filter', filter);
 
-            const btn = document.getElementById('crt-btn');
-            if (crtEnabled) {
+            // Atualiza o visual dos botões do menu
+            document.querySelectorAll('#filter-group button').forEach(b => b.classList.remove('active'));
+            document.getElementById('filter-' + filter).classList.add('active');
+
+            // Ligar/Desligar o overlay CRT
+            if (filter === 'crt') {
                 crtOverlay.classList.add('active');
-                btn.textContent = 'CRT: ON';
-                btn.style.color = 'var(--success-color)';
             } else {
                 crtOverlay.classList.remove('active');
-                btn.textContent = 'CRT: OFF';
-                btn.style.color = '';
+            }
+
+            // Aplica o filtro DENTRO do iframe do jogo
+            try {
+                const iframeDoc = frame.contentDocument || frame.contentWindow.document;
+                const canvas = iframeDoc.getElementById('canvas');
+
+                if (canvas) {
+                    if (filter === 'smooth') {
+                        // Força a suavização (Bilinear) do navegador
+                        canvas.style.setProperty('image-rendering', 'auto', 'important');
+                        canvas.style.setProperty('image-rendering', 'smooth', 'important'); // Fallback para Safari
+                    } else {
+                        // Volta ao modo pixelado e nítido
+                        canvas.style.setProperty('image-rendering', 'pixelated', 'important');
+                        canvas.style.setProperty('image-rendering', 'crisp-edges', 'important');
+                    }
+                }
+            } catch (e) {
+                console.warn("Não foi possível aplicar o filtro no canvas do iframe.", e);
             }
         }
 
         function toggleFullscreen() {
             if (!document.fullscreenElement) {
-                container.requestFullscreen().catch(err => {
-                    alert(`Erro ao entrar em tela cheia: ${err.message}`);
-                });
+                container.requestFullscreen().catch(err => alert(`Erro: ${err.message}`));
             } else {
                 document.exitFullscreen();
             }
         }
 
-        function setupVirtualGamepad() {
-            const buttons = document.querySelectorAll('.pad-btn');
-
-            buttons.forEach(btn => {
-                const key = btn.getAttribute('data-key');
-
-                const handleStart = (e) => {
-                    e.preventDefault();
-                    window.dispatchEvent(new KeyboardEvent('keydown', { key: key }));
-                    // Also try dispatching to iframe
-                    try {
-                        frame.contentWindow.dispatchEvent(new KeyboardEvent('keydown', { key: key }));
-                    } catch(e) {}
+        // =========================================
+        // SNES CONTROLLER LOGIC
+        // =========================================
+        function setupSnesController() {
+            // Dispatch accurate keyboard events based on lua_api.c mapping
+            function dispatchKey(key, isDown) {
+                const keyMap = {
+                    'w': { code: 'KeyW', keyCode: 87 },
+                    's': { code: 'KeyS', keyCode: 83 },
+                    'a': { code: 'KeyA', keyCode: 65 },
+                    'd': { code: 'KeyD', keyCode: 68 },
+                    'j': { code: 'KeyJ', keyCode: 74 },
+                    'k': { code: 'KeyK', keyCode: 75 },
+                    'l': { code: 'KeyL', keyCode: 76 },
+                    'm': { code: 'KeyM', keyCode: 77 },
+                    'g': { code: 'KeyG', keyCode: 71 },
+                    'h': { code: 'KeyH', keyCode: 72 },
+                    'Shift': { code: 'ShiftLeft', keyCode: 16 },
+                    'Enter': { code: 'Enter', keyCode: 13 }
                 };
 
-                const handleEnd = (e) => {
+                const mapping = keyMap[key];
+                if (!mapping) return;
+
+                const event = new KeyboardEvent(isDown ? 'keydown' : 'keyup', {
+                    key: key,
+                    code: mapping.code,
+                    keyCode: mapping.keyCode,
+                    which: mapping.keyCode,
+                    bubbles: true
+                });
+                window.dispatchEvent(event);
+                try {
+                    if (frame.contentWindow) {
+                        frame.contentWindow.dispatchEvent(event);
+                    }
+                } catch (e) {}
+            }
+
+            // Handle Standard Face/Start/Select buttons and Triggers
+            const buttons = document.querySelectorAll('[data-key]');
+            buttons.forEach(el => {
+                if (el.classList.contains('dpad-hit')) return; // Skip D-pad hits, handled below
+
+                const key = el.getAttribute('data-key');
+
+                const start = (e) => {
                     e.preventDefault();
-                    window.dispatchEvent(new KeyboardEvent('keyup', { key: key }));
-                    try {
-                        frame.contentWindow.dispatchEvent(new KeyboardEvent('keyup', { key: key }));
-                    } catch(e) {}
+                    el.classList.add('pressed');
+                    dispatchKey(key, true);
+                };
+                const end = (e) => {
+                    e.preventDefault();
+                    el.classList.remove('pressed');
+                    dispatchKey(key, false);
                 };
 
-                btn.addEventListener('touchstart', handleStart);
-                btn.addEventListener('touchend', handleEnd);
-                btn.addEventListener('mousedown', handleStart);
-                btn.addEventListener('mouseup', handleEnd);
-                btn.addEventListener('mouseleave', handleEnd);
+                el.addEventListener('mousedown', start);
+                el.addEventListener('touchstart', start, { passive: false });
+                el.addEventListener('mouseup', end);
+                el.addEventListener('mouseleave', end);
+                el.addEventListener('touchend', end);
+                el.addEventListener('touchcancel', end);
+            });
+
+            // Handle D-Pad perfectly using invisible hit zones
+            const dpadHits = document.querySelectorAll('.dpad-hit');
+            const vertBar = document.querySelector('.dpad.verticle');
+            const horizBar = document.querySelector('.dpad.horizontal');
+
+            dpadHits.forEach(hit => {
+                const key = hit.getAttribute('data-key');
+                const isVert = hit.classList.contains('up') || hit.classList.contains('down');
+                const visualBar = isVert ? vertBar : horizBar;
+
+                const start = (e) => {
+                    e.preventDefault();
+                    visualBar.classList.add('pressed');
+                    dispatchKey(key, true);
+                };
+                const end = (e) => {
+                    e.preventDefault();
+                    visualBar.classList.remove('pressed');
+                    dispatchKey(key, false);
+                };
+
+                hit.addEventListener('mousedown', start);
+                hit.addEventListener('touchstart', start, { passive: false });
+                hit.addEventListener('mouseup', end);
+                hit.addEventListener('mouseleave', end);
+                hit.addEventListener('touchend', end);
+                hit.addEventListener('touchcancel', end);
             });
         }
 
         window.addEventListener('resize', updateFitSize);
         window.addEventListener('load', init);
 
-        // Forward keyboard events to iframe for better focus handling
+        // Forward keyboard events to iframe for global typing
         window.addEventListener('keydown', (e) => {
             if (document.activeElement !== frame) {
                 try {
                     frame.contentWindow.dispatchEvent(new KeyboardEvent('keydown', {
-                        key: e.key,
-                        code: e.code,
-                        keyCode: e.keyCode,
-                        which: e.which,
-                        shiftKey: e.shiftKey,
-                        ctrlKey: e.ctrlKey,
-                        metaKey: e.metaKey
+                        key: e.key, code: e.code, keyCode: e.keyCode, which: e.which,
+                        shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, metaKey: e.metaKey
                     }));
                 } catch(err) {}
             }
@@ -758,13 +693,8 @@
             if (document.activeElement !== frame) {
                 try {
                     frame.contentWindow.dispatchEvent(new KeyboardEvent('keyup', {
-                        key: e.key,
-                        code: e.code,
-                        keyCode: e.keyCode,
-                        which: e.which,
-                        shiftKey: e.shiftKey,
-                        ctrlKey: e.ctrlKey,
-                        metaKey: e.metaKey
+                        key: e.key, code: e.code, keyCode: e.keyCode, which: e.which,
+                        shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, metaKey: e.metaKey
                     }));
                 } catch(err) {}
             }

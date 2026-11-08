@@ -1,0 +1,12 @@
+libs/web/furnace-web/extern/fftw/libfftw3.a
+libs/web/furnace-web/extern/fmt/libfmt.a
+libs/web/furnace-web/extern/klattsch-cpp/libklattsch.a
+libs/web/furnace-web/extern/libsndfile-modified/libsndfile.a
+libs/web/furnace-web/extern/zlib/libz.a
+libs/web/furnace-web/extern/libvorbis/lib/libvorbisenc.a
+libs/web/furnace-web/extern/libvorbis/lib/libvorbis.a
+libs/web/furnace-web/extern/flac/src/libFLAC/libFLAC.a
+libs/web/furnace-web/extern/libogg/libogg.a
+libs/web/furnace-web/extern/opus/libopus.a
+libs/web/furnace-web/extern/mpg123/src/libmpg123.a
+libs/web/furnace-web/extern/lame/libmp3lame.a

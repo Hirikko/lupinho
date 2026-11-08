@@ -28,9 +28,20 @@ You can find more information about the **hardware limits** in this issue: [**LI
 - 🖼️ **Sprites and Tiles** — Load and draw spritesheets with flip support
 - 🗺️ **Tilemap system** — Draw large maps with camera scrolling
 - 🎮 **Controller and Keyboard** — Input support for controllers and keyboard
+- 🎛️ **Screen Filters** — Default, Smooth (Bilinear), and CRT modes
+- 🔊 **Native Audio (Furnace)** — `.fur` music with sample-accurate fade and channel volume
 - 🖱️ **Mouse and text input** — Mouse state and character-buffer APIs
+- 🧪 **Hardware Limits Debug** — Overlay and watchdog to validate games against real hardware limits
 - ⚡ **60 FPS** — Smooth gameplay at 60 frames per second
 - 🔧 **Built with Raylib** — Built on the lightweight Raylib graphics library
+
+## 🕹️ Web Player (Lupinho Player)
+
+Lupinho now features a complete and modern web player, designed to offer the best possible browser experience:
+
+- **Virtual Controller:** An on-screen Super Nintendo-style controller, perfectly mapped to the emulator's keys. Works with touch (mobile) and clicks (desktop).
+- **Visual Filters:** Toggle between sharp pixels (Default), bilinear smoothing (Smooth), and the nostalgia of scanlines (CRT).
+- **Instant Restart:** The "Restart Game" button resets the engine and Lua script in memory without deleting the loaded game.
 
 ## 🛠️ Technologies Used
 
@@ -40,6 +51,7 @@ You can find more information about the **hardware limits** in this issue: [**LI
 | Compiler | Emscripten (emcc) |
 | Graphics | Raylib |
 | Scripting | Lua 5.5.1 |
+| Áudio | Furnace Engine |
 | Platform | WebAssembly |
 | Screen | 480×270 px @ 60 FPS |
 
@@ -214,6 +226,10 @@ Button constants: `UP`, `DOWN`, `LEFT`, `RIGHT`, `BTN_Z`, `BTN_Q`, `BTN_E`, `BTN
 cd src
 make clean
 ```
+
+## 🙏 Acknowledgements
+
+*   **SNES Controller (CSS):** Special thanks to [marksgarcia](https://codepen.io/marksgarcia) for the original SNES controller CSS design, available on [CodePen](https://codepen.io/marksgarcia/pen/bGpeomM) and used under the MIT license.
 
 ## 🤝 Contributing
 

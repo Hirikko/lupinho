@@ -1,5 +1,25 @@
+# Fonte do Furnace — não versionar (é ~1 GB e só serve para rebuildar a lib)
+src/furnace/
+
+# Build intermediária do Furnace
+src/music/furnace-build-*/
+src/music/fur_player-*.o
+
+# Build intermediária do Raylib Web
+src/libs/web/raylib-build/
+
+# Build nativa Linux (cada um compila)
+src/libs/linux/raylib/*.a
+src/libs/linux/raylib/*.o
+
+# Objetos compilados do Lupinho
+src/*.web.o
+src/*.debug.web.o
+src/main.web-game.o
+
+# Saída das builds
 dist/*
 !dist/.keep
-site/index.zip
 site/dist/*
 !site/dist/.keep
+site/index.zip

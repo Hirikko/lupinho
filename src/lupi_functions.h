@@ -8,6 +8,7 @@ void lupi_functions_reset(void);
 void lupi_functions_push_text_input(int codepoint);
 
 int lua_mouse(lua_State *L);
+int lua_peektext(lua_State *L);
 int lua_readtext(lua_State *L);
 
 int lua_sprites_find(lua_State *L);

@@ -3,11 +3,17 @@
 #include <string.h>
 #include <stdint.h>
 
+#if defined(PLATFORM_WEB)
+#include <emscripten/emscripten.h>
+#include <emscripten/heap.h>
+#endif
+
 #include "lua_api.h"
 #include "ui.h"
 #include "raylib.h"
 #include "hardware_constraints.h"
 #include "lupi_functions.h"
+#include "lupi_music.h"
 
 lua_State *globalLuaState = NULL;
 
@@ -19,6 +25,10 @@ static void poll_text_input(void) {
     int codepoint;
 
     if (!IsWindowReady()) return;
+
+    if (IsKeyPressed(KEY_BACKSPACE)) {
+        lupi_functions_push_text_input(8);
+    }
 
     while ((codepoint = GetCharPressed()) != 0) {
         lupi_functions_push_text_input(codepoint);
@@ -326,7 +336,7 @@ int lua_cls(lua_State *L) {
 // ui.log(message:string)
 //----------------------------------------------------------------------------------
 int lua_log(lua_State *L) {
-    char *message = luaL_checkstring(L, 1);
+    const char *message = luaL_checkstring(L, 1);
     printf("[LUPINHO] %s\n", message);
     return 0;
 }
@@ -569,7 +579,7 @@ int lua_clip(lua_State *L) {
 //----------------------------------------------------------------------------------
 int lua_preload_spritesheet(lua_State *L) {
     int spritesheet = (int)luaL_checknumber(L, 1);
-
+    (void)spritesheet;
     return 0;
 }
 
@@ -581,6 +591,11 @@ int lua_draw_sprite(lua_State *L) {
     int y = (int)luaL_checknumber(L, 2);
     int sprite_index = (int)luaL_checknumber(L, 3);
     int size = (int)luaL_checknumber(L, 4);
+
+    (void)x;
+    (void)y;
+    (void)sprite_index;
+    (void)size;
 
     return 0;
 }
@@ -609,7 +624,10 @@ int lua_print(lua_State *L) {
 int lua_set_pallet(lua_State *L) {
     int start_index = (int)luaL_checknumber(L, 1);
     int count = (int)luaL_checknumber(L, 2);
-    luaL_checktype(L, 3, LUA_TTABLE);  // Check that argument 3 is a table
+    luaL_checktype(L, 3, LUA_TTABLE);
+
+    (void)start_index;
+    (void)count;
 
     return 0;
 }
@@ -756,6 +774,56 @@ static int lua_sprites_loader(lua_State *L) {
     lua_getglobal(L, "Sprites");
     return 1;
 }
+//----------------------------------------------------------------------------------
+// ui.stat(index:number) -> number
+//----------------------------------------------------------------------------------
+// Substitua a função lua_stat por esta versão final:
+int lua_stat(lua_State *L) {
+    int index = (int)luaL_checkinteger(L, 1);
+    double value = 0.0;
+
+    switch (index) {
+        // --- PADRÕES DA DOCUMENTAÇÃO LUPI ---
+        case 0: // Uso de memória em bytes (Vamos mapear para a RAM do Lua, já que o WASM é fixo)
+            value = (double)lua_gc(L, LUA_GCCOUNT, 0) * 1024.0;
+            break;
+        case 1: // Uso de CPU (aproximado em %)
+            value = (double)(GetFrameTime() * 100.0f / 0.01666f);
+            break;
+        case 7: // FPS atual
+            value = (double)GetFPS();
+            break;
+
+        // --- MÉTRICAS CUSTOMIZADAS DO DEBUG LAB ---
+        case 2: // Tempo de jogo em segundos
+            value = (double)GetTime();
+            break;
+        case 3: // Tempo do frame atual em ms
+            value = (double)(GetFrameTime() * 1000.0f);
+            break;
+        case 4: // Contador de Frames
+            value = (double)frame_counter;
+            break;
+        case 5: // Memória consumida pelo Lua (em KB)
+            value = (double)lua_gc(L, LUA_GCCOUNT, 0);
+            break;
+        case 6: // Uso Atual (e dinâmico) do WASM (em KB) - Simulando a PSRAM via Lua
+            value = (double)lua_gc(L, LUA_GCCOUNT, 0);
+            break;
+        case 8: // Teto Máximo do WASM (em KB) (Os 64MB)
+            #if defined(PLATFORM_WEB)
+            value = (double)(emscripten_get_heap_max() / 1024.0);
+            #endif
+            break;
+
+        default:
+            value = 0.0;
+            break;
+    }
+
+    lua_pushnumber(L, value);
+    return 1;
+}
 
 //----------------------------------------------------------------------------------
 // lua_api_init — create Lua state, bind ui.* table, expose button constants
@@ -766,6 +834,7 @@ void lua_api_init(void) {
     frame_counter = 0;
     globalLuaState = luaL_newstate();
     luaL_openlibs(globalLuaState);
+    LupiMusic_Register(globalLuaState);
 
     lua_newtable(globalLuaState);
 
@@ -808,6 +877,9 @@ void lua_api_init(void) {
     lua_pushcfunction(globalLuaState, lua_mouse);
     lua_setfield(globalLuaState, -2, "mouse");
 
+    lua_pushcfunction(globalLuaState, lua_peektext);
+    lua_setfield(globalLuaState, -2, "peektext");
+
     lua_pushcfunction(globalLuaState, lua_readtext);
     lua_setfield(globalLuaState, -2, "readtext");
 
@@ -843,6 +915,9 @@ void lua_api_init(void) {
 
     lua_pushcfunction(globalLuaState, lua_mid);
     lua_setfield(globalLuaState, -2, "mid");
+
+    lua_pushcfunction(globalLuaState, lua_stat);
+    lua_setfield(globalLuaState, -2, "stat");
 
     lua_setglobal(globalLuaState, "ui");
 
@@ -886,20 +961,21 @@ void lua_api_init(void) {
 // The hook runs only during startup and installs the native helpers as soon as
 // a Palette table exists. It is removed immediately after game.lua finishes.
 //----------------------------------------------------------------------------------
+
+//----------------------------------------------------------------------------------
+// Startup palette hook
+//----------------------------------------------------------------------------------
 static void lua_palette_startup_hook(lua_State *L, lua_Debug *ar) {
     (void)ar;
-
     lua_getglobal(L, "Palette");
     bool has_palette = lua_istable(L, -1);
     bool has_hex = false;
-
     if (has_palette) {
         lua_getfield(L, -1, "hex");
         has_hex = lua_isfunction(L, -1);
         lua_pop(L, 1);
     }
     lua_pop(L, 1);
-
     if (has_palette && !has_hex) {
         install_palette_helpers(L);
     }
@@ -910,6 +986,7 @@ static void lua_palette_startup_hook(lua_State *L, lua_Debug *ar) {
 //----------------------------------------------------------------------------------
 void lua_api_setup_game(const char *game_dir) {
     snprintf(current_game_dir, sizeof(current_game_dir), "%s", game_dir);
+    LupiMusic_SetGameDir(game_dir);
 
     lua_getglobal(globalLuaState, "package");
 

@@ -21,13 +21,25 @@ Você pode ter mais informações sobre os **Limites** nesta Issue: [**LIMITAÇ�
 ## ✨ Recursos
 
 - 🌐 **Funciona no navegador** — Roda em WebAssembly, necessário poucas instalações e configurações
-- 📜 **Scripts em Lua** — Escreva seus jogos em Lua de forma simples e fácil de aprender
+- 📜 **Scripts em Lua5.5.1** — Escreva seus jogos em Lua de forma simples e fácil de aprender
 - 🎨 **Gráficos 2D** — Desenhe texto, linhas, retângulos, círculos e triângulos
 - 🖼️ **Sprites e Tiles** — Carregue e desenhe spritesheets com suporte a inversão (flip)
 - 🗺️ **Sistema de Mapas (Tilemap)** — Desenhe grandes mapas com rolagem de câmera (scrolling)
 - 🎮 **Controle e Teclado** — Suporte de entrada tanto para controles quanto para teclado
+- 🖱️ **Mouse e texto** — Suporte ao mouse e scroll, readtext e peektext adicionados.
+- 🔊 **Áudio Nativo (Furnace)** — Música `.fur` com fade por amostra e volume por canal
+- 🧪 **Hardware Limits Debug** — Overlay e watchdog para validar jogos antes do hardware real
 - ⚡ **60 FPS** — Jogabilidade fluida a 60 quadros por segundo
 - 🔧 **Feito em Raylib** — Construído sobre a leve biblioteca gráfica Raylib
+
+## 🕹️ Player Web (Lupinho Player)
+
+O Lupinho agora conta com um player web completo e moderno, projetado para oferecer a melhor experiência possível no navegador:
+
+- **Controle Virtual:** Um controle estilo Super Nintendo na tela, mapeado perfeitamente para as teclas do emulador. Funciona com toque (mobile) e clique (desktop).
+- **Filtros Visuais:** Alterne entre a nitidez dos pixels (Padrão), suavização bilinear (Suave) e a nostalgia das linhas de varredura (CRT).
+- **Reinício Instantâneo:** O botão "Reiniciar Jogo" reseta a engine e o script Lua na memória sem apagar o jogo carregado.
+
 
 ## 🛠️ Tecnologias Utilizadas
 
@@ -36,7 +48,8 @@ Você pode ter mais informações sobre os **Limites** nesta Issue: [**LIMITAÇ�
 | Linguagem | C99 |
 | Compilador | Emscripten (emcc) |
 | Gráficos | Raylib |
-| Scripting | Lua 5.4 |
+| Scripting | Lua 5.5.1 |
+| Áudio | Furnace Engine |
 | Plataforma | WebAssembly |
 | Tela | 480×270 px @ 60 FPS |
 

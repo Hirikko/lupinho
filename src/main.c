@@ -187,7 +187,7 @@ void UpdateDrawFrame() {
         !hardware_constraints_lua_watchdog_enabled()) ? RED : normal_color);
 
         DrawText(hardware_constraints_lua_watchdog_triggered()
-        ? "Watchdog: TRIPPED"
+        ? "Watchdog: ATINGIDO"
         : (hardware_constraints_lua_watchdog_enabled()
         ? "Watchdog: ON"
         : "Watchdog: OFF"),
@@ -215,6 +215,11 @@ void UpdateDrawFrame() {
 EMSCRIPTEN_KEEPALIVE
 void lupi_load_game(const char *game_dir) {
     game_is_loading = 1;
+
+    if (!IsAudioDeviceReady()) {
+        InitAudioDevice();
+    }
+
     lua_api_close();
     lua_api_init();
     reset_ui_state();
@@ -226,13 +231,13 @@ void lupi_load_game(const char *game_dir) {
 #if !defined(PLATFORM_WEB)
 static void print_usage(const char *program_name) {
     printf("Usage: %s [game.lupi | game_directory]\n", program_name);
-    printf("\nLupi Emulator - Run Lupi games on Linux\n");
+    printf("\nEmulador do Lupi - Rode jogos do Lupi no Linux\n");
     printf("\nArguments:\n");
-    printf("  game.lupi         Path to a .lupi archive file\n");
-    printf("  game_directory    Path to an unpacked game directory\n");
-    printf("\nExamples:\n");
+    printf("  game.lupi         Caminho para um arquivo .lupi\n");
+    printf("  game_directory    Caminho para um diretorio de jogo não compactado\n");
+    printf("\nExemplos:\n");
     printf("  %s balao-gatinho.lupi\n", program_name);
-    printf("  %s game-example/\n", program_name);
+    printf("  %s jogo-exemplo/\n", program_name);
 }
 
 static int ends_with(const char *str, const char *suffix) {
@@ -251,11 +256,7 @@ int main() {
     lua_api_setup_game("/loaded_game");
     #endif
 
-    #ifndef DEBUG_MODE
-    SetTraceLogLevel(LOG_WARNING);
-    #endif
-
-    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Lupi Emulator");
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Emulador do Lupi");
     HideCursor();
     SetTargetFPS(60);
 
@@ -272,13 +273,13 @@ int main(int argc, char *argv[]) {
 
     // Parse command-line arguments
     if (argc < 2) {
-        fprintf(stderr, "Error: No game specified\n");
+        fprintf(stderr, "Erro: Sem jogo especificado\n");
         print_usage(argv[0]);
         return 1;
     }
 
     if (argc > 2) {
-        fprintf(stderr, "Error: Too many arguments\n");
+        fprintf(stderr, "Erro: Muitos argumentos\n");
         print_usage(argv[0]);
         return 1;
     }
@@ -292,12 +293,12 @@ int main(int argc, char *argv[]) {
     // Determine if input is a .lupi file or directory
     if (ends_with(argv[1], ".lupi")) {
         // Extract .lupi file to temp directory
-        printf("Extracting %s...\n", argv[1]);
+        printf("Extraindo %s...\n", argv[1]);
         if (extract_lupi_to_tmp(argv[1], temp_game_dir, sizeof(temp_game_dir)) != 0) {
-            fprintf(stderr, "Failed to extract %s\n", argv[1]);
+            fprintf(stderr, "Falha ao extrair %s\n", argv[1]);
             return 1;
         }
-        printf("Extracted to: %s\n", temp_game_dir);
+        printf("Extraído para: %s\n", temp_game_dir);
         game_dir = temp_game_dir;
         extracted_to_tmp = 1;
     } else {
@@ -315,7 +316,7 @@ int main(int argc, char *argv[]) {
     #ifndef DEBUG_MODE
     SetTraceLogLevel(LOG_WARNING);
     #endif
-    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Lupi Emulator");
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Emulador do Lupi");
     HideCursor();
     SetTargetFPS(60);
 

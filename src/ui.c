@@ -169,15 +169,10 @@ void reset_clip(void) { clip_enabled = false; }
 // Frame buffer pixel write — enforces bounds and clip region.
 // All drawing functions must use this instead of writing frame_buffer directly.
 //----------------------------------------------------------------------------------
-bool should_draw_pixel_with_pattern(int x, int y) {
-    bool is_solid = true;
-    for (int i = 0; i < 8; i++) {
-        if (fill_pattern[i] != 0) {
-            is_solid = false;
-            break;
-        }
-    }
-    if (is_solid) return true;
+static bool fill_pattern_is_solid = true;
+
+static bool should_draw_pixel_with_pattern(int x, int y) {
+    if (fill_pattern_is_solid) return true;
 
     int row = y & 7;
     int col = x & 7;
@@ -555,6 +550,15 @@ void draw_spr(const char *path, int width, int height, int x, int y, bool flippe
 void set_fillp(uint8_t *bytes, int n) {
     for (int i = 0; i < n && i < 8; i++) fill_pattern[i] = bytes[i];
     for (int i = n; i < 8; i++)          fill_pattern[i] = 0;
+
+    // Recalcula uma vez, em vez de recalcular em todo pixel
+    fill_pattern_is_solid = true;
+    for (int i = 0; i < 8; i++) {
+        if (fill_pattern[i] != 0) {
+            fill_pattern_is_solid = false;
+            break;
+        }
+    }
 }
 
 //----------------------------------------------------------------------------------
@@ -567,6 +571,7 @@ void reset_ui_state(void) {
     clear_frame_buffer();
     memset(palette, 0, sizeof(palette));
     memset(fill_pattern, 0, sizeof(fill_pattern));
+    fill_pattern_is_solid = true;   // ← adicione esta linha
 }
 
 //----------------------------------------------------------------------------------

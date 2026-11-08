@@ -1,12 +1,38 @@
-# Novas funcionalidades e sistema de debug
-
-Esta versão do Lupinho adiciona novas APIs compatíveis com jogos Lupi, suporte a diagnóstico de hardware, overlay de debug e melhorias na infraestrutura Lua/Web.
+# Novas Funcionalidades e Sistema de Debug
+Esta versão do Lupinho adiciona novas APIs compatíveis com jogos Lupi, suporte a diagnóstico de hardware, overlay de debug, integração nativa com o motor de áudio Furnace, controle virtual SNES e melhorias na infraestrutura Lua/Web.
 ## Novas funcionalidades
-
 ### Lua 5.5.1
 O Lupinho utiliza Lua 5.5.1 como runtime Lua.
 
 Isso permite maior compatibilidade com os jogos e scripts atuais do ecossistema Lupi, mantendo a execução Lua alinhada com a versão utilizada no projeto.
+
+---
+## Interface do Emulador
+- **Favicon**: O ícone da aba do navegador foi atualizado para refletir a nova identidade visual oficial do projeto Lupi (disponível em `https://lupi.api.br/favicon.ico`).
+
+### Controle Virtual SNES
+O player web agora inclui um controle virtual no estilo Super Nintendo, que pode ser ativado pelo botão **CONTROLE: LIGADO/DESLIGADO**. 
+Ele dispara eventos de teclado mapeados para as teclas do Lupinho, garantindo compatibilidade total com os jogos.
+
+| Botão do Controle | Tecla Mapeada |
+|---|---|
+| D-Pad (Cima, Baixo, Esquerda, Direita) | W, S, A, D |
+| A (Roxo) | J |
+| B (Vermelho) | K |
+| Y (Verde) | L |
+| X (Azul) | M |
+| L (Trigger Esquerdo) | G |
+| R (Trigger Direito) | H |
+| Select | Shift |
+| Start | Enter |
+### Filtros de Tela
+Três filtros de renderização estão disponíveis no menu:
+- **Padrão**: `image-rendering: pixelated` (pixels nítidos, ideal para pixel art).
+- **Suave**: Aplica a suavização bilinear nativa do navegador (efeito semelhante a shaders de suavização como 2xSaI, com custo zero de processamento).
+- **CRT**: Aplica um overlay com linhas de varredura e cintilação para simular monitores de tubo antigos.
+### Carregamento e Reinício de Jogos
+- Arraste e solte arquivos `.lupi` diretamente na página.
+- O botão **REINICIAR JOGO** reinicia o jogo atual sem recarregar a página inteira (mantendo o arquivo em memória).
 
 ---
 ## Entrada de mouse
@@ -43,37 +69,56 @@ local x, y, buttons = ui.mouse()
 local left = (buttons & 1) ~= 0
 local right = (buttons & 2) ~= 0
 ```
-
 Atualmente os valores da roda (`wheel_x` e `wheel_y`) são retornados como `0`.
 
 ---
-## Entrada de texto
+### Sistema de Áudio (Furnace)
+Integração nativa com o motor Furnace via C++. Suporta:
+- Reprodução de arquivos `.fur` comprimidos ou não.
+- `music.loop(nome, fade)`: Inicia a música.
+- `music.stop(fade)`: Para a música.
+- `music.volume(vol, fade)`: Ajusta o volume geral (Master).
+- `music.volume(vol, mascara_de_canal, fade)`: Ajusta canais individuais. Use `CH_1` até `CH_128` ou `CH_ALL` para aplicar a todos. O fade é processado por amostra (sample-accurate).
 
-Foi adicionada a API:
-```lua
-ui.readtext()
-```
+---
+### `ui.stat(index)`
+Retorna métricas do sistema em tempo real. Os índices agora estão alinhados com a documentação oficial do Lupi e com as necessidades do Debug Lab:
+- `0`: Uso de memória Lua em bytes.
+- `1`: Uso de CPU (aproximado em porcentagem do frame).
+- `2`: Tempo de jogo (uptime) em segundos.
+- `3`: Tempo do frame atual em milissegundos.
+- `4`: Contador de frames.
+- `5`: Memória consumida pelo Lua em KB.
+- `6`: Uso atual dinâmico do WASM em KB (mapeado para a RAM do Lua).
+- `7`: FPS Atual.
+- `8`: Teto Máximo de memória do WebAssembly em KB (apenas Web).
 
-Ela retorna o próximo caractere disponível no buffer de entrada de texto.
-
-Exemplo:
+---
+## Entrada de texto e Peek
+Foi adicionada a API `ui.readtext()`, que retorna o próximo caractere disponível no buffer de entrada de texto e **consome** um caractere da fila. 
+É ideal para nomes de jogadores, menus, campos de texto, códigos, senhas e telas de configuração.
 ```lua
 local char = ui.readtext()
-
 if char then
     print(char)
 end
 ```
 
 Cada chamada consome um caractere do buffer.
-A API é adequada para sistemas de entrada textual, como:
 
-- nomes de jogadores;
-- menus;
-- campos de texto;
-- códigos;
-- senhas;
-- telas de configuração.
+Também foi adicionada a API ui.peektext(), que espia o próximo caractere do buffer sem consumi-lo. 
+Isso permite que o jogo verifique qual é a próxima tecla antes de decidir se deve lê-la.
+```lua
+local next_char = ui.peektext()
+if next_char == "\8" then
+    -- O próximo caractere é um Backspace
+end
+```
+
+Notas de Comportamento:
+
+- O Backspace já está mapeado e envia o caractere de controle \8 (ASCII 8) para o buffer.
+- O Enter (quebra de linha) ainda não está implementado no buffer de texto e está sendo analisado para uma atualização futura.
 
 ---
 # Sprites.find
@@ -140,7 +185,6 @@ A função converte a cor RGB especificada para o índice correspondente na pale
 
 ---
 # Compatibilidade com `pairs(Palette)`
-
 As funções auxiliares `Palette.rgb` e `Palette.hex` foram implementadas de forma que não interfiram na enumeração tradicional da paleta.
 
 Isso permite que jogos existentes continuem utilizando:
@@ -182,7 +226,6 @@ O sistema suporta até 256 arquivos em cache.
 
 ---
 # Sistema de diagnóstico de hardware
-
 O Lupinho possui um sistema de monitoramento das limitações de hardware previstas para o console Lupi.
 
 O sistema coleta métricas por frame sem alterar o comportamento normal do jogo.
@@ -219,27 +262,26 @@ Esses valores são utilizados pelo sistema de diagnóstico para indicar situaç�
 
 O sistema também contabiliza o custo estimado dos comandos gráficos.
 
-| Comando | Custo |
-|---|---:|
-| `line` | 12 bytes |
-| `rect` | 12 bytes |
-| `rectfill` | 12 bytes |
-| `circ` | 12 bytes |
-| `circfill` | 12 bytes |
-| `trisfill` | 20 bytes |
-| `spr` inicial | 8 bytes |
-| `spr` subsequente | 4 bytes |
-| `tile` inicial | 8 bytes |
-| `tile` subsequente | 4 bytes |
-| `clip` | 12 bytes |
-| `clip` reset | 4 bytes |
-| `fillp` | 12 bytes |
-| `fillp` reset | 4 bytes |
-| `cls` | 16 bytes |
-| `print` | 16 + `ceil(tamanho / 4)` bytes |
-| `camera` | 0 bytes |
-| `palset` | 0 bytes |
-
+| Comando            |                          Custo |
+| ------------------ | -----------------------------: |
+| `line`             |                       12 bytes |
+| `rect`             |                       12 bytes |
+| `rectfill`         |                       12 bytes |
+| `circ`             |                       12 bytes |
+| `circfill`         |                       12 bytes |
+| `trisfill`         |                       20 bytes |
+| `spr` inicial      |                        8 bytes |
+| `spr` subsequente  |                        4 bytes |
+| `tile` inicial     |                        8 bytes |
+| `tile` subsequente |                        4 bytes |
+| `clip`             |                       12 bytes |
+| `clip` reset       |                        4 bytes |
+| `fillp`            |                       12 bytes |
+| `fillp` reset      |                        4 bytes |
+| `cls`              |                       16 bytes |
+| `print`            | 16 + `ceil(tamanho / 4)` bytes |
+| `camera`           |                        0 bytes |
+| `palset`           |                        0 bytes |
 Esses valores permitem identificar quais operações estão consumindo mais espaço do drawlist.
 
 ---
@@ -278,7 +320,6 @@ LUPI_HARDWARE_CONSTRAINTS = false
 
 ---
 ## `LUPI_HARDWARE_DEBUG_OVERLAY`
-
 Controla a exibição do painel de diagnóstico na tela.
 ```lua
 LUPI_HARDWARE_DEBUG_OVERLAY = true
@@ -308,7 +349,6 @@ LUPI_HARDWARE_DEBUG_OVERLAY = false
 
 ---
 # Overlay de hardware
-
 Quando habilitado, o overlay apresenta informações semelhantes a:
 ```text
 drawlist: 6168 / 18432
@@ -357,7 +397,6 @@ sd tx over: 45
 Nesse caso, o jogo realizou 77 transações no SD durante o frame, ultrapassando o limite de 32.
 
 O diagnóstico também permite identificar excesso de:
-
 - drawlist;
 - tráfego do SD;
 - transações do SD;
@@ -377,12 +416,11 @@ SD → RAM
 ```
 
 Nesse caso são contabilizados:
-
 - bytes lidos;
 - transação;
 - carregamento do asset.
 
-Uso posterior:
+Próximos usos:
 ```text
 RAM
 ```

@@ -87,12 +87,29 @@ int lua_mouse(lua_State *L) {
         buttons |= 2;
     }
 
+    // Raylib retorna um float; arredondamos para inteiro para o Lua.
+    int wheel_y = (int)GetMouseWheelMove();
+    int wheel_x = 0; // Raylib não fornece scroll horizontal por padrão.
+
     lua_pushinteger(L, (lua_Integer)position.x);
     lua_pushinteger(L, (lua_Integer)position.y);
     lua_pushinteger(L, buttons);
-    lua_pushinteger(L, 0);
-    lua_pushinteger(L, 0);
+    lua_pushinteger(L, wheel_x);
+    lua_pushinteger(L, wheel_y);
     return 5;
+}
+
+//----------------------------------------------------------------------------------
+// ui.peektext() -> string ou nil
+// Retorna o próximo caractere do buffer SEM consumi-lo.
+//----------------------------------------------------------------------------------
+int lua_peektext(lua_State *L) {
+    if (text_input_count == 0) {
+        return 0; // nil
+    }
+    // Retorna o caractere na posição atual da cabeça, sem avançar.
+    lua_pushstring(L, text_input_queue[text_input_head].bytes);
+    return 1;
 }
 
 //----------------------------------------------------------------------------------
